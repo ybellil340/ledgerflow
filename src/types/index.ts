@@ -384,3 +384,24 @@ export interface TransactionFilters {
   page?: number
   perPage?: number
 }
+
+// ─────────────────────────────────────────────
+// DASHBOARD DATA (alias for DashboardMetrics + extra fields)
+// ─────────────────────────────────────────────
+
+export interface DashboardData {
+  totalSpendMonth: number
+  cashPosition: number
+  pendingApprovals: any[]
+  overduePendingApprovals: number
+  missingReceipts: number
+  missingReceiptsAmount: number
+  overdueInvoices: number
+  overdueInvoicesAmount: number
+  spendByCategory: CategorySpend[]
+  monthlyFlow: MonthlyFlow[]
+  recentTransactions: any[]
+  topMerchants: any[]
+  unreadNotifications: number
+  reimbursementQueue: number
+}

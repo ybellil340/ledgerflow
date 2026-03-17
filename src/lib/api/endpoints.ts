@@ -118,6 +118,15 @@ export const cardsApi = {
 
   updateLimits: (id: string, limitAmount: number, limitPeriod: string) =>
     api.patch<Card>(`/api/cards/${id}`, { limitAmount, limitPeriod }),
+
+  listRequests: () =>
+    api.get<{ requests: any[]; total: number }>('/api/cards?type=requests'),
+
+  approveRequest: (id: string) =>
+    api.patch<any>(`/api/cards/${id}`, { action: 'approve_request' }),
+
+  rejectRequest: (id: string, reason: string) =>
+    api.patch<any>(`/api/cards/${id}`, { action: 'reject_request', reason }),
 }
 
 // ─────────────────────────────────────────────
@@ -294,18 +303,19 @@ export const cashFlowApi = {
 
 export const taxAdvisorApi = {
   getPortfolio: () =>
-    api.get<TaxAdvisorPortfolio[]>('/api/tax-advisor/portfolio'),
+    api.get<any>('/api/tax-advisor'),
 
   getReviewQueue: (orgId: string) =>
-    api.get<ReviewQueue>(`/api/tax-advisor/review/${orgId}`),
+    api.get<any[]>(`/api/tax-advisor?type=review&orgId=${orgId}`),
 
-  addComment: (params: {
-    organizationId: string; entityType: string; entityId: string
-    content: string; visibility?: 'INTERNAL' | 'EXTERNAL'; requestDocument?: boolean
-  }) => api.post('/api/tax-advisor/comment', params),
+  getComments: (orgId: string) =>
+    api.get<any[]>(`/api/tax-advisor?type=comments&orgId=${orgId}`),
 
-  lockPeriod: (organizationId: string, periodStart: string, periodEnd: string, locked: boolean) =>
-    api.post('/api/tax-advisor/lock-period', { organizationId, periodStart, periodEnd, locked }),
+  addComment: (orgId: string, data: { text: string }) =>
+    api.post('/api/tax-advisor', { action: 'comment', organizationId: orgId, ...data }),
+
+  lockPeriod: (orgId: string, data: { period: string }) =>
+    api.post('/api/tax-advisor', { action: 'lock_period', organizationId: orgId, ...data }),
 }
 
 // ─────────────────────────────────────────────
@@ -333,8 +343,12 @@ export const notificationsApi = {
 export const billingApi = {
   get: () => api.get<BillingData>('/api/billing'),
 
-  upgrade: (plan: PlanKey, billingCycle: 'monthly' | 'annual') =>
-    api.post('/api/billing', { plan, billingCycle }),
+  getBillingInfo: () => api.get<any>('/api/billing'),
+
+  listInvoices: () => api.get<any[]>('/api/billing?type=invoices'),
+
+  upgrade: (data: { planId: string; billingCycle: string }) =>
+    api.post('/api/billing', { action: 'upgrade', ...data }),
 }
 
 // ─────────────────────────────────────────────
@@ -343,16 +357,49 @@ export const billingApi = {
 
 export const settingsApi = {
   getTeam: () =>
-    api.get<{ members: OrganizationMember[]; invitations: Invitation[] }>('/api/settings/team'),
+    api.get<{ members: OrganizationMember[]; invitations: Invitation[] }>('/api/settings'),
 
-  updateMember: (memberId: string, data: { role?: string; status?: string; departmentId?: string | null }) =>
-    api.patch<OrganizationMember>(`/api/settings/team/${memberId}`, data),
+  listMembers: () =>
+    api.get<OrganizationMember[]>('/api/settings?type=members'),
+
+  listInvitations: () =>
+    api.get<Invitation[]>('/api/settings?type=invitations'),
+
+  listDepartments: () =>
+    api.get<Department[]>('/api/settings?type=departments'),
+
+  inviteMember: (data: { email: string; role: string; departmentId?: string }) =>
+    api.post<Invitation>('/api/settings/invite', data),
+
+  updateMember: (memberId: string, data: { role?: string; departmentId?: string }) =>
+    api.patch<OrganizationMember>(`/api/settings/member/${memberId}`, data),
+
+  resendInvitation: (id: string) =>
+    api.post<void>(`/api/settings/invite/${id}/resend`, {}),
+
+  revokeInvitation: (id: string) =>
+    api.delete<void>(`/api/settings/invite/${id}`),
 
   getDepartments: () =>
-    api.get<Department[]>('/api/settings/departments'),
+    api.get<Department[]>('/api/settings?type=departments'),
 
   createDepartment: (data: { name: string; code?: string; budgetMonthly?: number }) =>
     api.post<Department>('/api/settings/departments', data),
+
+  listIntegrations: () =>
+    api.get<any[]>('/api/integrations'),
+
+  getIntegrationOAuthUrl: (key: string) =>
+    api.post<{ authUrl: string }>('/api/integrations', { action: 'get_oauth_url', key }),
+
+  connectIntegration: (key: string, data: { apiKey?: string }) =>
+    api.post<void>('/api/integrations', { action: 'connect', key, ...data }),
+
+  disconnectIntegration: (key: string) =>
+    api.post<void>('/api/integrations', { action: 'disconnect', key }),
+
+  syncIntegration: (key: string) =>
+    api.post<void>('/api/integrations', { action: 'sync', key }),
 
   getIntegrations: () =>
     api.get<{ catalog: unknown[]; connections: unknown[] }>('/api/settings/integrations'),

@@ -38,13 +38,18 @@ export const GET = withAuth(async (req: NextRequest, session: SessionUser) => {
       _sum: { grossAmount: true },
     }),
 
-    // Pending approvals count
-    prisma.expense.count({
+    // Pending approvals - return actual expense objects
+    prisma.expense.findMany({
       where: {
         organizationId: orgId,
         status: { in: ['SUBMITTED', 'PENDING_APPROVAL'] },
         deletedAt: null,
       },
+      include: {
+        user: { select: { id: true, firstName: true, lastName: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 10,
     }),
 
     // Missing receipts (approved expenses with no receipt)

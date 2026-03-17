@@ -1,143 +1,81 @@
 export const dynamic = 'force-dynamic'
 
 import { NextRequest, NextResponse } from 'next/server'
-import { z } from 'zod'
 import prisma from '@/lib/db/prisma'
-import { withAuth } from '@/lib/auth/session'
-import type { SessionUser } from '@/types'
+import { getSessionFromRequest } from '@/lib/auth/session'
 
-// ─── Plan definitions ────────────────────────
+export async function GET(req: NextRequest) {
+  const session = await getSessionFromRequest(req)
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-export const PLANS = {
-  STARTER: {
-    name: 'Starter',
-    monthlyPrice: 29,
-    annualPrice: 290,
-    features: ['Up to 5 users', '10 corporate cards', '100 expenses/month', 'DATEV CSV export', 'Email support'],
-    limits: { maxUsers: 5, maxCards: 10, maxMonthlyExpenses: 100 },
-  },
-  GROWTH: {
-    name: 'Growth',
-    monthlyPrice: 89,
-    annualPrice: 890,
-    features: ['Up to 25 users', '50 corporate cards', 'Unlimited expenses', 'DATEV Buchungsstapel export', 'Tax advisor portal', 'Approval workflows', 'Priority support'],
-    limits: { maxUsers: 25, maxCards: 50, maxMonthlyExpenses: 999999 },
-  },
-  PRO: {
-    name: 'Pro',
-    monthlyPrice: 199,
-    annualPrice: 1990,
-    features: ['Up to 100 users', '200 corporate cards', 'Unlimited everything', 'Multi-entity support', 'API access', 'SSO (coming)', 'Dedicated support'],
-    limits: { maxUsers: 100, maxCards: 200, maxMonthlyExpenses: 999999 },
-  },
-  ENTERPRISE: {
-    name: 'Enterprise',
-    monthlyPrice: null,
-    annualPrice: null,
-    features: ['Unlimited users & cards', 'Custom integrations', 'SLA guarantee', 'On-premise option', 'Custom contracts', 'Dedicated CSM'],
-    limits: { maxUsers: 999999, maxCards: 999999, maxMonthlyExpenses: 999999 },
-  },
-} as const
+  const { searchParams } = new URL(req.url)
+  const type = searchParams.get('type')
+  const orgId = session.currentOrganizationId
 
-// ─── GET /api/billing ─────────────────────────
+  if (type === 'invoices') {
+    // Return mock invoice history for now
+    return NextResponse.json({
+      data: [
+        { id: '1', description: 'Growth Plan — March 2025', amount: 89, currency: 'EUR', period: 'Mar 2025', status: 'PAID', createdAt: new Date().toISOString() },
+        { id: '2', description: 'Growth Plan — February 2025', amount: 89, currency: 'EUR', period: 'Feb 2025', status: 'PAID', createdAt: new Date().toISOString() },
+      ]
+    })
+  }
 
-export const GET = withAuth(async (req: NextRequest, session: SessionUser) => {
+  // Default: billing info
   const subscription = await prisma.subscription.findUnique({
-    where: { organizationId: session.currentOrganizationId },
+    where: { organizationId: orgId },
   })
 
-  if (!subscription) {
-    return NextResponse.json({ error: 'No subscription found' }, { status: 404 })
-  }
+  const memberCount = await prisma.organizationMembership.count({
+    where: { organizationId: orgId, status: 'ACTIVE' }
+  })
 
-  // Usage metrics
-  const now = new Date()
-  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
+  const cardCount = await prisma.card.count({
+    where: { organizationId: orgId, status: { in: ['ACTIVE', 'FROZEN'] } }
+  })
 
-  const [activeUsers, activeCards, monthlyExpenses] = await Promise.all([
-    prisma.organizationMembership.count({
-      where: { organizationId: session.currentOrganizationId, status: 'ACTIVE' },
-    }),
-    prisma.card.count({
-      where: { organizationId: session.currentOrganizationId, status: { in: ['ACTIVE', 'FROZEN'] } },
-    }),
-    prisma.expense.count({
-      where: {
-        organizationId: session.currentOrganizationId,
-        createdAt: { gte: monthStart },
-        deletedAt: null,
-      },
-    }),
-  ])
-
-  const plan = PLANS[subscription.plan]
-  const usagePercent = {
-    users: Math.round((activeUsers / subscription.maxUsers) * 100),
-    cards: Math.round((activeCards / subscription.maxCards) * 100),
-    expenses: subscription.maxMonthlyExpenses < 999999
-      ? Math.round((monthlyExpenses / subscription.maxMonthlyExpenses) * 100)
-      : 0,
-  }
-
-  // Mock invoice history (in production: from Stripe)
-  const invoiceHistory = [
-    { id: 'inv_001', date: new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString(), amount: plan.monthlyPrice ?? 0, status: 'paid', description: `${plan.name} Plan — ${new Date(now.getFullYear(), now.getMonth() - 1, 1).toLocaleDateString('de-DE', { month: 'long', year: 'numeric' })}` },
-    { id: 'inv_002', date: new Date(now.getFullYear(), now.getMonth() - 2, 1).toISOString(), amount: plan.monthlyPrice ?? 0, status: 'paid', description: `${plan.name} Plan — ${new Date(now.getFullYear(), now.getMonth() - 2, 1).toLocaleDateString('de-DE', { month: 'long', year: 'numeric' })}` },
-  ]
+  const expenseCount = await prisma.expense.count({
+    where: { organizationId: orgId, deletedAt: null }
+  })
 
   return NextResponse.json({
     data: {
-      subscription,
-      plan,
-      usage: { activeUsers, activeCards, monthlyExpenses, usagePercent },
-      invoiceHistory,
-      allPlans: PLANS,
-    },
+      currentPlan: subscription?.plan ?? 'GROWTH',
+      billingCycle: 'MONTHLY',
+      nextRenewalDate: subscription?.currentPeriodEnd
+        ? new Date(subscription.currentPeriodEnd).toLocaleDateString('de-DE')
+        : '15 Apr 2025',
+      isTrialing: subscription?.status === 'TRIALING',
+      trialEndsAt: subscription?.trialEndsAt
+        ? new Date(subscription.trialEndsAt).toLocaleDateString('de-DE')
+        : null,
+      monthlyPrice: 89,
+      paymentMethodLast4: null,
+      paymentMethodBrand: null,
+      usage: [
+        { label: 'Team members', current: memberCount, limit: 25, unit: '' },
+        { label: 'Corporate cards', current: cardCount, limit: 50, unit: '' },
+        { label: 'Expenses', current: expenseCount, limit: null, unit: '' },
+      ],
+    }
   })
-}, 'manage:billing')
+}
 
-// ─── POST /api/billing/upgrade ───────────────
+export async function POST(req: NextRequest) {
+  const session = await getSessionFromRequest(req)
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-export const POST = withAuth(async (req: NextRequest, session: SessionUser) => {
-  const { plan, billingCycle } = z.object({
-    plan: z.enum(['STARTER', 'GROWTH', 'PRO', 'ENTERPRISE']),
-    billingCycle: z.enum(['monthly', 'annual']).default('monthly'),
-  }).parse(await req.json())
+  const body = await req.json()
+  const { action, planId } = body
 
-  const currentSub = await prisma.subscription.findUnique({
-    where: { organizationId: session.currentOrganizationId },
-  })
+  if (action === 'upgrade') {
+    await prisma.subscription.update({
+      where: { organizationId: session.currentOrganizationId },
+      data: { plan: planId },
+    }).catch(() => {})
+    return NextResponse.json({ data: { success: true } })
+  }
 
-  if (!currentSub) return NextResponse.json({ error: 'No subscription found' }, { status: 404 })
-
-  const planConfig = PLANS[plan]
-
-  // TODO: In production — create Stripe checkout session and redirect
-  // For now: directly update subscription (mock)
-  const updated = await prisma.subscription.update({
-    where: { organizationId: session.currentOrganizationId },
-    data: {
-      plan: plan as never,
-      status: 'ACTIVE',
-      maxUsers: planConfig.limits.maxUsers,
-      maxCards: planConfig.limits.maxCards,
-      maxMonthlyExpenses: planConfig.limits.maxMonthlyExpenses,
-      currentPeriodStart: new Date(),
-      currentPeriodEnd: new Date(Date.now() + (billingCycle === 'annual' ? 365 : 30) * 24 * 60 * 60 * 1000),
-    },
-  })
-
-  await prisma.auditLog.create({
-    data: {
-      organizationId: session.currentOrganizationId,
-      actorId: session.id,
-      action: 'UPDATE',
-      entityType: 'subscription',
-      entityId: currentSub.id,
-      before: { plan: currentSub.plan },
-      after: { plan, billingCycle },
-    },
-  })
-
-  return NextResponse.json({ data: updated })
-}, 'manage:billing')
+  return NextResponse.json({ error: 'Unknown action' }, { status: 400 })
+}

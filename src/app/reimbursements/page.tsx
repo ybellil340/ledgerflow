@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react'
 import { Button, Badge, FilterChip, Card, Table, Th, Td, Avatar, Modal, Input, Textarea, Spinner, EmptyState, statusBadge } from '@/components/ui'
-import { Header } from '@/components/layout/AppShell'
+import { AppShell } from '@/components/layout/AppShell'
 
 interface Reimbursement {
   id: string
