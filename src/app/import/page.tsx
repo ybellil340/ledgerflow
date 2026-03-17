@@ -153,7 +153,7 @@ function UploadFile({ importType, onUploaded }: { importType: ImportType; onUplo
           <>
             <div style={{ fontSize: 32, marginBottom: 10 }}>📂</div>
             <div style={{ fontSize: 13.5, fontWeight: 500, marginBottom: 5 }}>Drop your CSV file here</div>
-            <div style={{ fontSize: 12, color: '#9CA3AF' }}>or click to browse · CSV, Excel · max 10MB</div>
+            <div style={{ fontSize: 12, color: '#9CA3AF' }}>or click to browse - CSV, Excel - max 10MB</div>
           </>
         )}
       </div>

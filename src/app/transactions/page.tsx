@@ -36,7 +36,7 @@ export default function TransactionsPage() {
   const totalOutflow = Math.abs(transactions.filter(t => t.amount < 0).reduce((s, t) => s + t.amount, 0))
 
   return (
-    <AppShell title="Transactions" subtitle={`${total} transactions · bank & card feed`}>
+    <AppShell title="Transactions" subtitle={`${total} transactions - bank & card feed`}>
       <div className="grid grid-cols-4 gap-3 mb-4">
         {[
           { label: 'Total transactions', value: total, color: '' },

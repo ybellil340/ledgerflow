@@ -87,8 +87,8 @@ function BudgetCard({ budget, onEdit }: { budget: Budget; onEdit: (b: Budget) =>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 2 }}>{budget.name}</div>
           <div style={{ fontSize: 11, color: '#9CA3AF', marginBottom: 5 }}>
-            {budget.department ? `${budget.department.name} · ` : ''}
-            {budget.period === 'MONTHLY' ? 'Monthly' : budget.period === 'QUARTERLY' ? 'Quarterly' : 'Annual'} ·{' '}
+            {budget.department ? `${budget.department.name} - ` : ''}
+            {budget.period === 'MONTHLY' ? 'Monthly' : budget.period === 'QUARTERLY' ? 'Quarterly' : 'Annual'} -{' '}
             {new Date(budget.periodRange.from).toLocaleDateString('de-DE', { month: 'short', year: '2-digit' })} –{' '}
             {new Date(budget.periodRange.to).toLocaleDateString('de-DE', { month: 'short', year: '2-digit' })}
           </div>

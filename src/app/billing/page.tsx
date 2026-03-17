@@ -325,7 +325,7 @@ export default function BillingPage() {
   return (
     <AppShell
       title="Billing & Subscription"
-      subtitle={billing ? `${billing.currentPlan} Plan · Renews ${billing.nextRenewalDate}` : 'Loading...'}
+      subtitle={billing ? `${billing.currentPlan} Plan - Renews ${billing.nextRenewalDate}` : 'Loading...'}
     >
       {isLoading ? (
         <div className="flex justify-center py-12"><Spinner /></div>
@@ -354,7 +354,7 @@ export default function BillingPage() {
                     <Badge label="Active" variant="green" />
                   </div>
                   <div className="text-sm text-gray-400">
-                    Renews {billing.nextRenewalDate} ·{' '}
+                    Renews {billing.nextRenewalDate} -{' '}
                     {billing.billingCycle === 'ANNUAL' ? 'Annual billing' : 'Monthly billing'}
                   </div>
                   <div className="mt-2">
@@ -446,7 +446,7 @@ export default function BillingPage() {
           </Card>
 
           <div className="info-box mt-3 bg-gray-50 border-gray-200 text-gray-400 text-xs">
-            All invoices issued by LedgerFlow GmbH · Maximilianstraße 45 · 80331 München ·
+            All invoices issued by LedgerFlow GmbH - Maximilianstraße 45 - 80331 München -
             VAT ID: DE000000000. Prices shown exclude VAT (19%). German VAT added unless
             a valid EU VAT ID is provided.
           </div>

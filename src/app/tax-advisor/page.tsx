@@ -131,7 +131,7 @@ function ReviewDrawer({
       <div className="p-4 border-b flex items-start justify-between">
         <div>
           <div className="font-semibold text-base">{client.name}</div>
-          <div className="text-xs text-gray-400">{client.city} · {client.legalForm} · {client.industry}</div>
+          <div className="text-xs text-gray-400">{client.city} - {client.legalForm} - {client.industry}</div>
         </div>
         <div className="flex items-center gap-2">
           <HealthRing score={client.healthScore} />
@@ -181,7 +181,7 @@ function ReviewDrawer({
                 />
                 <div className="flex-1 min-w-0">
                   <div className="text-sm font-medium truncate">{item.description}</div>
-                  <div className="text-xs text-gray-400">{item.date} · {item.type.replace('_', ' ')}</div>
+                  <div className="text-xs text-gray-400">{item.date} - {item.type.replace('_', ' ')}</div>
                 </div>
                 <div className="text-sm font-medium flex-shrink-0"><Amount value={item.amount} /></div>
                 {item.vatCode && (
@@ -256,7 +256,7 @@ export default function TaxAdvisorPage() {
   return (
     <AppShell
       title="Tax Advisor Portal"
-      subtitle="Client portfolio · Dr. Klaus Weber, Weber & Partner"
+      subtitle="Client portfolio - Dr. Klaus Weber, Weber & Partner"
     >
       {/* KPIs */}
       <div className="krow k4 mb-4">
@@ -290,7 +290,7 @@ export default function TaxAdvisorPage() {
                   {client.isLocked && <Badge label="🔒 Locked" variant="purple" size="sm" />}
                 </div>
                 <div className="text-xs text-gray-400 mb-1.5">
-                  {client.city} · {client.legalForm} · {client.industry}
+                  {client.city} - {client.legalForm} - {client.industry}
                 </div>
                 <div className="flex flex-wrap gap-1.5">
                   {client.issues.map((issue, i) => (

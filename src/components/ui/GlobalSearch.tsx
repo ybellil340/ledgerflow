@@ -246,7 +246,7 @@ export default function GlobalSearch({ isOpen, onClose }: GlobalSearchProps) {
           {!query && (
             <div style={{ padding: '20px 16px', textAlign: 'center', color: '#9CA3AF', fontSize: 12.5 }}>
               <div style={{ marginBottom: 6 }}>Type to search across all your data</div>
-              <div style={{ fontSize: 11, color: '#C4C4BF' }}>Expenses · Invoices · Suppliers · Customers · Transactions · Team</div>
+              <div style={{ fontSize: 11, color: '#C4C4BF' }}>Expenses - Invoices - Suppliers - Customers - Transactions - Team</div>
             </div>
           )}
 

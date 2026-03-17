@@ -124,7 +124,7 @@ function ObligationRow({ ob }: { ob: CashFlowForecast['obligations'][0] }) {
       <div className="flex-1 min-w-0">
         <div className="text-sm font-medium truncate">{ob.label}</div>
         <div className={`text-xs ${urgent ? 'text-red-500 font-medium' : 'text-gray-400'}`}>
-          {ob.dueDate} {urgent && `· ${ob.daysUntilDue}d left`}
+          {ob.dueDate} {urgent && `- ${ob.daysUntilDue}d left`}
         </div>
       </div>
       <span className="text-sm font-medium flex-shrink-0">
@@ -184,7 +184,7 @@ export default function CashFlowPage() {
               label="Current balance"
               value={<Amount value={forecast.currentBalance} />}
               valueColor="green"
-              sub="Estimated · 2 accounts"
+              sub="Estimated - 2 accounts"
             />
             <Card kpi
               label={`Projected (${range})`}

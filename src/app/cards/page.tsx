@@ -84,7 +84,7 @@ function CardVisual({ card, onFreeze, onUnfreeze }: {
             size="sm"
           />
           <span className="text-[10px] text-gray-400">
-            {card.type} · Monthly limit
+            {card.type} - Monthly limit
           </span>
         </div>
 
@@ -281,7 +281,7 @@ export default function CardsPage() {
       title="Corporate Cards"
       subtitle={
         cards
-          ? `${activeCards.length} active · ${frozenCards.length} frozen · ${requests.length} pending`
+          ? `${activeCards.length} active - ${frozenCards.length} frozen - ${requests.length} pending`
           : 'Loading...'
       }
       action={

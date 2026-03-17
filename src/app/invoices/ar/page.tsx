@@ -216,7 +216,7 @@ function NewARInvoiceModal({ onClose, onSuccess }: { onClose(): void; onSuccess(
 
         <div>
           <label className="f-label">Notes / payment instructions</label>
-          <Textarea value={form.notes} onChange={(v) => setForm((f) => ({ ...f, notes: v }))} rows={2} placeholder="IBAN: DE89 3704 0044 0532 0130 00 · Reference: please include invoice number" />
+          <Textarea value={form.notes} onChange={(v) => setForm((f) => ({ ...f, notes: v }))} rows={2} placeholder="IBAN: DE89 3704 0044 0532 0130 00 - Reference: please include invoice number" />
         </div>
       </div>
       <div className="flex gap-2 mt-5 justify-end">
@@ -257,7 +257,7 @@ function RecordPaymentModal({ invoice, onClose }: { invoice: ARInvoice; onClose(
   }
 
   return (
-    <Modal title="Record payment" subtitle={`${invoice.customer.name} · ${invoice.invoiceNumber}`} onClose={onClose}>
+    <Modal title="Record payment" subtitle={`${invoice.customer.name} - ${invoice.invoiceNumber}`} onClose={onClose}>
       <div className="space-y-3">
         <div className="p-3 bg-gray-50 rounded-lg text-sm">
           <div className="flex justify-between mb-1">

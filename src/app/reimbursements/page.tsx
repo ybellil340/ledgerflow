@@ -70,7 +70,7 @@ export default function ReimbursementsPage() {
   return (
     <AppShell
       title="Reimbursements"
-      subtitle={`${total} requests · out-of-pocket expenses`}
+      subtitle={`${total} requests - out-of-pocket expenses`}
       action={
         <Button variant="primary" size="sm" onClick={() => setCreateOpen(true)}>
           + New request

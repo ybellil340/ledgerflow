@@ -268,7 +268,7 @@ function ApprovalTab({ settings }: { settings: Record<string, unknown> }) {
             </div>
             <div style={{ display: 'flex', gap: 8, justifyContent: 'space-between', alignItems: 'center' }}>
               <div style={{ fontSize: 11, fontWeight: 500, color: '#4B5563' }}>
-                1 approval step · Role: {(p.steps as Array<Record<string, unknown>>)?.[0]?.approverRole as string ?? 'FINANCE_MANAGER'} · Timeout: {(p.steps as Array<Record<string, unknown>>)?.[0]?.timeoutHours as number ?? 48}h
+                1 approval step - Role: {(p.steps as Array<Record<string, unknown>>)?.[0]?.approverRole as string ?? 'FINANCE_MANAGER'} - Timeout: {(p.steps as Array<Record<string, unknown>>)?.[0]?.timeoutHours as number ?? 48}h
               </div>
               {policies.length > 1 && (
                 <button onClick={() => setPolicies(prev => prev.filter((_, j) => j !== i))}
@@ -371,7 +371,7 @@ export default function CompanySettingsPage() {
         <div style={{ background: '#fff', border: '.5px solid var(--border)', borderRadius: 12, padding: 16 }}>
           <div style={{ fontSize: 12.5, fontWeight: 500, marginBottom: 8 }}>Multi-currency support</div>
           <div style={{ fontSize: 11.5, color: '#6B7280', marginBottom: 12 }}>
-            Base currency: <strong>EUR</strong> · Rates sourced from ECB (European Central Bank) daily feed · Updated 16:00 CET
+            Base currency: <strong>EUR</strong> - Rates sourced from ECB (European Central Bank) daily feed - Updated 16:00 CET
           </div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
             {['EUR','USD','GBP','CHF','DKK','SEK','NOK','PLN','CZK','JPY','CNY','CAD','AUD'].map(c => (

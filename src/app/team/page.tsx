@@ -273,7 +273,7 @@ export default function TeamPage() {
   return (
     <AppShell
       title="Team"
-      subtitle={members ? `${members.length} members · ${invitations?.length ?? 0} pending invitations` : 'Loading...'}
+      subtitle={members ? `${members.length} members - ${invitations?.length ?? 0} pending invitations` : 'Loading...'}
       action={
         can('team:invite') ? (
           <Button variant="primary" onClick={() => setShowInviteModal(true)}>+ Invite member</Button>

@@ -1,5 +1,4 @@
 'use client'
-// build: 1773722768
 
 /**
  * Dashboard page — fully wired to APIs
@@ -149,7 +148,7 @@ function ApprovalRow({ expense, onDecision }: {
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontSize: 12, fontWeight: 500 }}>{expense.user.firstName} {expense.user.lastName}</div>
         <div style={{ fontSize: 10.5, color: '#9CA3AF' }}>
-          {expense.merchant} · {expense.department?.name ?? expense.categoryId ?? 'Uncategorized'}
+          {expense.merchant} - {expense.department?.name ?? expense.categoryId ?? 'Uncategorized'}
         </div>
       </div>
       <div style={{ fontSize: 12, fontWeight: 500, marginRight: 8 }}>{amount}</div>
@@ -216,7 +215,7 @@ export default function DashboardPage() {
   const kpis = data?.kpis
 
   return (
-    <AppShell title="Dashboard" subtitle={`${new Date().toLocaleDateString('de-DE', { month: 'long', year: 'numeric' })} · Müller Consulting GmbH`}>
+    <AppShell title="Dashboard" subtitle="Muller Consulting GmbH">
       <div>
       {/* KPI Row */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,minmax(0,1fr))', gap: 10, marginBottom: 14 }}>

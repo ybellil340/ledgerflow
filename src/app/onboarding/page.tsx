@@ -495,7 +495,7 @@ export default function OnboardingPage() {
         </div>
 
         <div style={{ textAlign: 'center', marginTop: 16, fontSize: 11, color: '#9CA3AF' }}>
-          Step {step} of {STEPS.length} · All data encrypted at rest · DSGVO-konform
+          Step {step} of {STEPS.length} - All data encrypted at rest - DSGVO-konform
         </div>
       </div>
       <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>

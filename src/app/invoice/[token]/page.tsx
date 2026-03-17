@@ -341,9 +341,9 @@ export default async function InvoicePortalPage({
             <div className="flex items-center justify-between flex-wrap gap-3">
               <div className="text-xs text-gray-400">
                 <span className="font-medium">{org.name}</span>
-                {org.address && ` · ${org.address}`}
+                {org.address && ` - ${org.address}`}
                 {org.city && `, ${org.city}`}
-                {org.vatId && ` · VAT ${org.vatId}`}
+                {org.vatId && ` - VAT ${org.vatId}`}
               </div>
 
               <a
@@ -367,7 +367,7 @@ export default async function InvoicePortalPage({
           <a href="https://ledgerflow.de" target="_blank" rel="noopener noreferrer" className="hover:text-gray-500 transition-colors">
             LedgerFlow
           </a>
-          {' '}· Financial OS for German SMEs
+          {' '}- Financial OS for German SMEs
         </div>
       </div>
     </div>

@@ -72,7 +72,7 @@ function GenerateExportModal({ onClose, onSuccess }: { onClose(): void; onSucces
       )
       toast({
         type: 'success',
-        message: `Export ready — ${result?.recordCount ?? 0} records · ${result?.fileName ?? 'export.csv'}`,
+        message: `Export ready — ${result?.recordCount ?? 0} records - ${result?.fileName ?? 'export.csv'}`,
       })
       invalidateQuery('accounting')
       onSuccess()
@@ -82,7 +82,7 @@ function GenerateExportModal({ onClose, onSuccess }: { onClose(): void; onSucces
   }
 
   return (
-    <Modal title="Generate DATEV export" subtitle="EXTF Buchungsstapel v700 format · SKR03/SKR04" onClose={onClose}>
+    <Modal title="Generate DATEV export" subtitle="EXTF Buchungsstapel v700 format - SKR03/SKR04" onClose={onClose}>
       <div className="space-y-4">
         <div className="f-row f-2">
           <div>
@@ -162,7 +162,7 @@ function ReadinessGauge({ readiness }: { readiness: ExportReadiness }) {
       <div className="flex items-center justify-between mb-3">
         <div>
           <div className="panel-title">Export readiness — {readiness.period}</div>
-          <div className="panel-sub">DATEV Buchungsstapel v700 · SKR03</div>
+          <div className="panel-sub">DATEV Buchungsstapel v700 - SKR03</div>
         </div>
         <div className="flex items-center gap-3">
           <span className="text-2xl font-medium" style={{ color }}>{score}%</span>
@@ -251,7 +251,7 @@ export default function AccountingPage() {
   return (
     <AppShell
       title="Accounting & Export"
-      subtitle="DATEV-ready exports · SKR03 mappings"
+      subtitle="DATEV-ready exports - SKR03 mappings"
       action={<Button variant="primary" onClick={() => setShowExportModal(true)}>+ Generate DATEV export</Button>}
     >
       {/* Tabs */}

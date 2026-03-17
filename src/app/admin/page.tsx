@@ -185,7 +185,7 @@ export default function AdminPage() {
   return (
     <AppShell
       title="Admin Backoffice"
-      subtitle="Super admin · Platform management"
+      subtitle="Super admin - Platform management"
     >
       <div className="tab-bar mb-4">
         {TABS.map((t) => (

@@ -200,7 +200,7 @@ function IntegrationCard({ integration, onConnect, onDisconnect }: {
       {isConnected && integration.lastSyncAt && (
         <div className="text-xs text-gray-400 mb-3">
           Last sync: {new Date(integration.lastSyncAt).toLocaleString('de-DE')}
-          {integration.syncCount && ` · ${integration.syncCount} records`}
+          {integration.syncCount && ` - ${integration.syncCount} records`}
         </div>
       )}
 
@@ -278,7 +278,7 @@ export default function IntegrationsPage() {
   return (
     <AppShell
       title="Integrations"
-      subtitle={integrations ? `${connectedCount} connected · ${(integrations ?? []).length} available` : 'Loading...'}
+      subtitle={integrations ? `${connectedCount} connected - ${(integrations ?? []).length} available` : 'Loading...'}
     >
       {errorCount > 0 && (
         <div className="info-box red mb-4">
