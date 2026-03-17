@@ -1,5 +1,7 @@
 'use client'
 
+import { AppShell } from '@/components/layout/AppShell'
+
 /**
  * Expenses page — fully wired
  *
@@ -295,7 +297,8 @@ export default function ExpensesPage() {
   const totalSelected = expenses.filter((e) => selected.has(e.id)).reduce((s, e) => s + e.grossAmount, 0)
 
   return (
-    <div>
+    <AppShell title="Expenses" subtitle={`${expenses.length} expenses`}>
+      <div>
       {/* KPI row */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,minmax(0,1fr))', gap: 10, marginBottom: 14 }}>
         {[
@@ -456,5 +459,6 @@ export default function ExpensesPage() {
 
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
+    </AppShell>
   )
 }

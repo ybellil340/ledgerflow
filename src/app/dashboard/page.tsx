@@ -15,6 +15,7 @@
  */
 
 import React, { useCallback } from 'react'
+import { AppShell } from '@/components/layout/AppShell'
 import { useDashboard } from '@/lib/hooks'
 import { expensesApi } from '@/lib/api/endpoints'
 import { invalidateQuery } from '@/lib/hooks'
@@ -34,6 +35,7 @@ function KpiSkeleton() {
       <div style={{ width: 120, height: 22, background: '#f0f0ee', borderRadius: 4 }} />
       <div style={{ width: 64, height: 8, background: '#f0f0ee', borderRadius: 4, marginTop: 8 }} />
     </div>
+    </div>
   )
 }
 
@@ -46,6 +48,7 @@ function ChartSkeleton() {
           <div style={{ flex: 1, height: `${h * 0.7}%`, background: '#f5f5f3', borderRadius: '3px 3px 0 0' }} />
         </div>
       ))}
+    </div>
     </div>
   )
 }
@@ -89,6 +92,7 @@ function BarChart({ data }: { data: MonthlyData[] }) {
         </div>
       ))}
     </div>
+    </div>
   )
 }
 
@@ -104,6 +108,7 @@ function KpiCard({ label, value, sub, subColor, iconColor }: {
       <div style={{ fontSize: 10.5, color: '#9CA3AF', marginBottom: 5 }}>{label}</div>
       <div style={{ fontSize: 21, fontWeight: 500, color: iconColor ?? '#111827', letterSpacing: '-.4px' }}>{value}</div>
       {sub && <div style={{ fontSize: 10.5, marginTop: 3, color: subColor ?? '#9CA3AF' }}>{sub}</div>}
+    </div>
     </div>
   )
 }
@@ -158,6 +163,7 @@ function ApprovalRow({ expense, onDecision }: {
         >✕</button>
       </div>
     </div>
+    </div>
   )
 }
 
@@ -209,7 +215,8 @@ export default function DashboardPage() {
   const kpis = data?.kpis
 
   return (
-    <div>
+    <AppShell title="Dashboard" subtitle={`${new Date().toLocaleDateString('de-DE', { month: 'long', year: 'numeric' })} · Müller Consulting GmbH`}>
+      <div>
       {/* KPI Row */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,minmax(0,1fr))', gap: 10, marginBottom: 14 }}>
         {isLoading ? (
@@ -387,5 +394,7 @@ export default function DashboardPage() {
         </div>
       </div>
     </div>
+    </div>
+    </AppShell>
   )
 }
