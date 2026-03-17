@@ -611,6 +611,7 @@ model Expense {
   costCenter     CostCenter?   @relation(fields: [costCenterId], references: [id])
   vatCode        VATCode?      @relation(fields: [vatCodeId], references: [id])
   receipt        Receipt?
+  transaction    Transaction?  @relation(fields: [transactionId], references: [id])
   exportBatch    ExportBatch?  @relation(fields: [exportBatchId], references: [id])
   comments       Comment[]     @relation("ExpenseComments")
   attachments    Attachment[]  @relation("ExpenseAttachments")
