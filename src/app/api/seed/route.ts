@@ -89,7 +89,7 @@ export async function GET(req: NextRequest) {
       data: { email: 'weber@weber-partner.de', firstName: 'Klaus', lastName: 'Weber', passwordHash: hash, isActive: true },
     })
     const firm = await prisma.taxAdvisorFirm.create({ data: { name: 'Weber & Partner', city: 'München' } })
-    await prisma.taxAdvisorProfile.create({ data: { userId: weber.id, firmId: firm.id,  isActive: true } })
+    await prisma.taxAdvisorProfile.create({ data: { userId: weber.id, firmId: firm.id } })
     await prisma.taxAdvisorClientLink.create({ data: { firmId: firm.id, organizationId: org.id } })
 
     // Sample expenses
