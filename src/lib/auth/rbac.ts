@@ -228,3 +228,10 @@ export function evaluateApprovalRequirement(
     autoApprove: false,
   }
 }
+
+// Assertion helper used by API routes
+export function assertPermission(user: SessionUser, permission: Permission): void {
+  if (!hasPermission(user, permission)) {
+    throw new Error(`Forbidden: requires permission '${permission}'`)
+  }
+}

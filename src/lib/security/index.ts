@@ -356,3 +356,8 @@ export async function assertEntityOwnership(
   })
   return !!record
 }
+
+// Aliases used by integration routes
+export const encryptValue = encrypt
+export const decryptValue = decrypt
+export const validateGermanVATId = (vatId: string) => validateVATId(vatId, 'DE')
