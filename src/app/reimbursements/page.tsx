@@ -224,7 +224,7 @@ export default function ReimbursementsPage() {
         onClose={() => setCreateOpen(false)}
         onCreated={() => { setCreateOpen(false); fetch_() }}
       />
-    </>
+    </AppShell>
   )
 }
 

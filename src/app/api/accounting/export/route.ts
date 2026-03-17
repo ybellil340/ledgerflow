@@ -61,7 +61,7 @@ export const GET = withAuth(async (req: NextRequest, session: SessionUser) => {
     }})
   }
 
-  const { searchParams } = new URL(req.url)
+
   const page = parseInt(searchParams.get('page') ?? '1')
   const perPage = Math.min(parseInt(searchParams.get('perPage') ?? '20'), 50)
 
