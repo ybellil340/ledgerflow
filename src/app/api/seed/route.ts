@@ -7,24 +7,54 @@ import bcrypt from 'bcryptjs'
 const SEED_SECRET = process.env.SEED_SECRET ?? 'seed-ledgerflow-demo'
 
 export async function GET(req: NextRequest) {
-  const secret = new URL(req.url).searchParams.get('secret')
+  const params = new URL(req.url).searchParams
+  const secret = params.get('secret')
+  const force = params.get('force') === '1'
+
   if (secret !== SEED_SECRET) {
-    return NextResponse.json({ error: 'Add ?secret=seed-ledgerflow-demo to the URL' }, { status: 401 })
+    return NextResponse.json({ error: 'Add ?secret=seed-ledgerflow-demo' }, { status: 401 })
   }
 
-  const existing = await prisma.user.findFirst({ where: { email: 'katrin.mueller@mueller-consulting.de' } })
-  if (existing) {
-    return NextResponse.json({ message: 'Already seeded — go to /auth/login', email: existing.email })
+  // Check if fully seeded (user + org + membership all exist)
+  if (!force) {
+    const membership = await prisma.organizationMembership.findFirst({
+      include: { user: true, organization: true }
+    })
+    if (membership) {
+      return NextResponse.json({
+        message: 'Already seeded — go to /auth/login',
+        user: membership.user.email,
+        org: membership.organization.name,
+        hint: 'Add &force=1 to reseed from scratch'
+      })
+    }
   }
 
   try {
+    // Wipe existing data in correct order
+    await prisma.taxAdvisorClientLink.deleteMany({})
+    await prisma.taxAdvisorProfile.deleteMany({})
+    await prisma.taxAdvisorFirm.deleteMany({})
+    await prisma.expense.deleteMany({})
+    await prisma.organizationMembership.deleteMany({})
+    await prisma.subscription.deleteMany({})
+    await prisma.organization.deleteMany({})
+    await prisma.user.deleteMany({})
+
     const hash = await bcrypt.hash('demo123', 10)
 
-    // Create owner user first (needed for org.ownerId)
+    // 1. Create owner first
     const katrin = await prisma.user.create({
-      data: { email: 'katrin.mueller@mueller-consulting.de', firstName: 'Katrin', lastName: 'Müller', passwordHash: hash, isActive: true },
+      data: {
+        email: 'katrin.mueller@mueller-consulting.de',
+        firstName: 'Katrin',
+        lastName: 'Müller',
+        passwordHash: hash,
+        isActive: true,
+      },
     })
 
+    // 2. Create org with owner
     const org = await prisma.organization.create({
       data: {
         name: 'Müller Consulting GmbH',
@@ -40,46 +70,47 @@ export async function GET(req: NextRequest) {
       },
     })
 
-    // Create subscription
+    // 3. Subscription
     await prisma.subscription.create({
       data: {
         organizationId: org.id,
         plan: 'GROWTH',
         status: 'ACTIVE',
-        
         currentPeriodStart: new Date(),
         currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
       },
     })
 
-    // Add katrin membership
+    // 4. Katrin's membership
     await prisma.organizationMembership.create({
-      data: { userId: katrin.id, organizationId: org.id, role: 'COMPANY_ADMIN', status: 'ACTIVE', joinedAt: new Date() },
+      data: {
+        userId: katrin.id,
+        organizationId: org.id,
+        role: 'COMPANY_ADMIN',
+        status: 'ACTIVE',
+      },
     })
 
-    // Create other users
-    const thomas = await prisma.user.create({
-      data: { email: 'thomas.huber@mueller-consulting.de', firstName: 'Thomas', lastName: 'Huber', passwordHash: hash, isActive: true },
-    })
-    const sara = await prisma.user.create({
-      data: { email: 'sara.mayer@mueller-consulting.de', firstName: 'Sara', lastName: 'Mayer', passwordHash: hash, isActive: true },
-    })
-    const anna = await prisma.user.create({
-      data: { email: 'anna.becker@mueller-consulting.de', firstName: 'Anna', lastName: 'Becker', passwordHash: hash, isActive: true },
-    })
+    // 5. Other users + memberships
+    const others = [
+      { email: 'thomas.huber@mueller-consulting.de',  firstName: 'Thomas', lastName: 'Huber',  role: 'EMPLOYEE' },
+      { email: 'sara.mayer@mueller-consulting.de',    firstName: 'Sara',   lastName: 'Mayer',  role: 'FINANCE_MANAGER' },
+      { email: 'anna.becker@mueller-consulting.de',   firstName: 'Anna',   lastName: 'Becker', role: 'EMPLOYEE' },
+    ]
+
+    for (const u of others) {
+      const user = await prisma.user.create({
+        data: { email: u.email, firstName: u.firstName, lastName: u.lastName, passwordHash: hash, isActive: true },
+      })
+      await prisma.organizationMembership.create({
+        data: { userId: user.id, organizationId: org.id, role: u.role as any, status: 'ACTIVE' },
+      })
+    }
+
+    // 6. Tax advisor
     const weber = await prisma.user.create({
       data: { email: 'weber@weber-partner.de', firstName: 'Klaus', lastName: 'Weber', passwordHash: hash, isActive: true },
     })
-
-    await prisma.organizationMembership.createMany({
-      data: [
-        { userId: thomas.id, organizationId: org.id, role: 'EMPLOYEE',        status: 'ACTIVE', joinedAt: new Date() },
-        { userId: sara.id,   organizationId: org.id, role: 'FINANCE_MANAGER', status: 'ACTIVE', joinedAt: new Date() },
-        { userId: anna.id,   organizationId: org.id, role: 'EMPLOYEE',        status: 'ACTIVE', joinedAt: new Date() },
-      ],
-    })
-
-    // Tax advisor
     const firm = await prisma.taxAdvisorFirm.create({
       data: { name: 'Weber & Partner', city: 'München' },
     })
@@ -87,27 +118,28 @@ export async function GET(req: NextRequest) {
       data: { userId: weber.id, firmId: firm.id, licenseNumber: 'STB-2024-001', isActive: true },
     })
     await prisma.taxAdvisorClientLink.create({
-      data: { firmId: firm.id, organizationId: org.id, status: 'ACTIVE' },
+      data: { firmId: firm.id, organizationId: org.id },
     })
 
-    // Sample expenses
-    await prisma.expense.createMany({
-      data: [
-        { organizationId: org.id, userId: thomas.id, merchant: 'Lufthansa',        expenseDate: new Date('2025-03-14'), currency: 'EUR', grossAmount: 842,  vatRate: 19, vatAmount: 134.42, netAmount: 707.58, status: 'APPROVED',          notes: 'Business travel Frankfurt' },
-        { organizationId: org.id, userId: thomas.id, merchant: 'Marriott Berlin',  expenseDate: new Date('2025-03-07'), currency: 'EUR', grossAmount: 420,  vatRate: 7,  vatAmount: 27.57,  netAmount: 392.43, status: 'PENDING_APPROVAL',   notes: 'Hotel for client meeting' },
-        { organizationId: org.id, userId: anna.id,   merchant: 'Conrad Electronics',expenseDate: new Date('2025-03-10'), currency: 'EUR', grossAmount: 249,  vatRate: 19, vatAmount: 39.75,  netAmount: 209.25, status: 'SUBMITTED',          notes: 'Office headphones' },
-        { organizationId: org.id, userId: sara.id,   merchant: 'AWS Frankfurt',    expenseDate: new Date('2025-03-13'), currency: 'EUR', grossAmount: 1240, vatRate: 0,  vatAmount: 0,      netAmount: 1240,   status: 'PENDING_APPROVAL',   notes: 'Cloud infrastructure' },
-      ],
-    })
+    // 7. Sample expenses
+    const thomas = await prisma.user.findUnique({ where: { email: 'thomas.huber@mueller-consulting.de' } })
+    if (thomas) {
+      await prisma.expense.createMany({
+        data: [
+          { organizationId: org.id, userId: thomas.id, merchant: 'Lufthansa',         expenseDate: new Date('2025-03-14'), currency: 'EUR', grossAmount: 842,  vatRate: 19, vatAmount: 134.42, netAmount: 707.58, status: 'APPROVED' },
+          { organizationId: org.id, userId: thomas.id, merchant: 'Marriott Berlin',   expenseDate: new Date('2025-03-07'), currency: 'EUR', grossAmount: 420,  vatRate: 7,  vatAmount: 27.57,  netAmount: 392.43, status: 'PENDING_APPROVAL' },
+          { organizationId: org.id, userId: katrin.id, merchant: 'AWS Frankfurt',     expenseDate: new Date('2025-03-13'), currency: 'EUR', grossAmount: 1240, vatRate: 0,  vatAmount: 0,      netAmount: 1240,   status: 'PENDING_APPROVAL' },
+          { organizationId: org.id, userId: katrin.id, merchant: 'Conrad Electronics',expenseDate: new Date('2025-03-10'), currency: 'EUR', grossAmount: 249,  vatRate: 19, vatAmount: 39.75,  netAmount: 209.25, status: 'SUBMITTED' },
+        ],
+      })
+    }
 
     return NextResponse.json({
       success: true,
-      message: '✅ Seeded! Go to /auth/login',
+      message: '✅ Database seeded! Go to /auth/login',
       logins: [
         { email: 'katrin.mueller@mueller-consulting.de', password: 'demo123', role: 'Company Admin' },
-        { email: 'thomas.huber@mueller-consulting.de',   password: 'demo123', role: 'Employee' },
         { email: 'sara.mayer@mueller-consulting.de',     password: 'demo123', role: 'Finance Manager' },
-        { email: 'anna.becker@mueller-consulting.de',    password: 'demo123', role: 'Employee' },
         { email: 'weber@weber-partner.de',               password: 'demo123', role: 'Tax Advisor' },
       ],
     })
