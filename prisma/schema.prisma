@@ -296,6 +296,7 @@ model Organization {
   taxAdvisorLinks    TaxAdvisorClientLink[]
   invitations        Invitation[]
   integrationConnections IntegrationConnection[]
+  integrations           Integration[]
   featureFlags       OrganizationFeatureFlag[]
   auditLogs          AuditLog[]
   notifications      Notification[]
@@ -802,6 +803,7 @@ model CustomerInvoice {
   status         CustomerInvoiceStatus @default(DRAFT)
   isRecurring    Boolean               @default(false)
   recurringRule  Json?                 // { frequency, interval, endDate }
+  publicToken    String?               @unique
   sentAt         DateTime?
   viewedAt       DateTime?
   paidAt         DateTime?
@@ -1058,6 +1060,7 @@ model Notification {
   channel        NotificationChannel @default(IN_APP)
   isRead         Boolean  @default(false)
   readAt         DateTime?
+  publicToken    String?               @unique
   sentAt         DateTime?
   metadata       Json?
   createdAt      DateTime @default(now())
@@ -1171,4 +1174,21 @@ model IntegrationConnection {
 
   @@unique([organizationId, provider])
   @@index([organizationId])
+}
+
+model Integration {
+  id                   String    @id @default(cuid())
+  organizationId       String
+  key                  String
+  status               String    @default("DISCONNECTED")
+  encryptedCredentials String?
+  connectedAt          DateTime?
+  connectedBy          String?
+  lastSyncAt           DateTime?
+  syncCount            Int       @default(0)
+  errorMessage         String?
+  createdAt            DateTime  @default(now())
+  organization         Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, key])
 }
