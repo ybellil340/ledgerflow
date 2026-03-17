@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic'
+
 /**
  * Recurring Rules — auto-generate expenses and AR invoices on a schedule
  *

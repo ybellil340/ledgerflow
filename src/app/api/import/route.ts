@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic'
+
 /**
  * POST /api/import           — parse CSV/XLSX, return preview
  * POST /api/import/confirm   — execute confirmed import

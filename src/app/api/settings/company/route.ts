@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic'
+
 /**
  * GET  /api/settings/company  — get company profile + all settings
  * PATCH /api/settings/company  — update company profile

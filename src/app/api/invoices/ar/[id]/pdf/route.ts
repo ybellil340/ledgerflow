@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic'
+
 /**
  * GET /api/invoices/ar/[id]/pdf
  *

@@ -2,21 +2,23 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import bcrypt from 'bcryptjs'
 import prisma from '@/lib/db/prisma'
-import { signToken, setSessionCookie } from '@/lib/auth/session'
-import { getPermissionsForRole } from '@/lib/auth/rbac'
+import { signToken } from '@/lib/auth/session'
+
+export const dynamic = 'force-dynamic'
 
 const LoginSchema = z.object({
   email: z.string().email(),
   password: z.string().min(1),
-  organizationId: z.string().cuid().optional(),
+  organizationId: z.string().optional(),
 })
+
+const COOKIE_NAME = process.env.SESSION_COOKIE_NAME ?? 'ledgerflow_session'
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
     const { email, password, organizationId } = LoginSchema.parse(body)
 
-    // Find user
     const user = await prisma.user.findUnique({
       where: { email: email.toLowerCase().trim() },
       include: {
@@ -25,7 +27,6 @@ export async function POST(req: NextRequest) {
           include: { organization: { select: { id: true, name: true, isActive: true } } },
           orderBy: { joinedAt: 'desc' },
         },
-        taxAdvisorProfile: { include: { firm: true } },
       },
     })
 
@@ -33,9 +34,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 })
     }
 
-    // Verify password
     if (!user.passwordHash) {
-      return NextResponse.json({ error: 'Password login not available for this account. Use magic link.' }, { status: 401 })
+      return NextResponse.json({ error: 'Password login not available for this account' }, { status: 401 })
     }
 
     const passwordValid = await bcrypt.compare(password, user.passwordHash)
@@ -43,63 +43,41 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 })
     }
 
-    // Determine which organization to log into
     const activeOrgId = organizationId ?? user.memberships[0]?.organization.id
-    if (!activeOrgId && !user.taxAdvisorProfile) {
+    if (!activeOrgId) {
       return NextResponse.json({ error: 'No organization access found' }, { status: 403 })
     }
 
     const membership = user.memberships.find((m) => m.organizationId === activeOrgId)
     const isSuperAdmin = user.memberships.some((m) => m.role === 'SUPER_ADMIN')
-    const isTaxAdvisor = !!user.taxAdvisorProfile
 
-    // Build token
     const token = await signToken({
       sub: user.id,
       email: user.email,
       firstName: user.firstName,
       lastName: user.lastName,
-      role: membership?.role ?? (isTaxAdvisor ? 'TAX_ADVISOR' : 'EMPLOYEE'),
-      organizationId: activeOrgId ?? '',
+      role: membership?.role ?? 'EMPLOYEE',
+      organizationId: activeOrgId,
       isSuperAdmin,
-      isTaxAdvisor,
-      taxAdvisorFirmId: user.taxAdvisorProfile?.firmId,
+      isTaxAdvisor: false,
     })
 
-    // Set cookie
-    setSessionCookie(token)
-
-    // Update last login
-    await prisma.user.update({
+    // Update last login (fire and forget)
+    prisma.user.update({
       where: { id: user.id },
-      data: { lastLoginAt: new Date(), lastLoginIp: req.headers.get('x-forwarded-for') ?? undefined },
-    })
+      data: { lastLoginAt: new Date() },
+    }).catch(() => {})
 
-    // Audit log
-    await prisma.auditLog.create({
-      data: {
-        organizationId: activeOrgId,
-        actorId: user.id,
-        action: 'LOGIN',
-        entityType: 'user',
-        entityId: user.id,
-        ipAddress: req.headers.get('x-forwarded-for') ?? undefined,
-        userAgent: req.headers.get('user-agent') ?? undefined,
-      },
-    })
-
-    return NextResponse.json({
+    const response = NextResponse.json({
       data: {
         user: {
           id: user.id,
           email: user.email,
           firstName: user.firstName,
           lastName: user.lastName,
-          avatarUrl: user.avatarUrl,
           currentOrganizationId: activeOrgId,
           currentRole: membership?.role,
           isSuperAdmin,
-          isTaxAdvisor,
           organizations: user.memberships.map((m) => ({
             id: m.organization.id,
             name: m.organization.name,
@@ -108,6 +86,17 @@ export async function POST(req: NextRequest) {
         },
       },
     })
+
+    // Set cookie via response header (works in all Next.js 14 contexts)
+    response.cookies.set(COOKIE_NAME, token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      path: '/',
+      maxAge: 60 * 60 * 24 * 7,
+    })
+
+    return response
   } catch (err) {
     if (err instanceof z.ZodError) {
       return NextResponse.json({ error: 'Invalid request', details: err.errors }, { status: 400 })

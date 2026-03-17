@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic'
+
 /**
  * GET    /api/budgets           — list all department budgets with live utilization
  * POST   /api/budgets           — create budget

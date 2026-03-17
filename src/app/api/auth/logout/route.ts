@@ -1,20 +1,17 @@
+export const dynamic = 'force-dynamic'
+
 import { NextRequest, NextResponse } from 'next/server'
-import { clearSessionCookie, getSession } from '@/lib/auth/session'
-import prisma from '@/lib/db/prisma'
+
+const COOKIE_NAME = process.env.SESSION_COOKIE_NAME ?? 'ledgerflow_session'
 
 export async function POST(req: NextRequest) {
-  const session = await getSession()
-  if (session) {
-    await prisma.auditLog.create({
-      data: {
-        organizationId: session.currentOrganizationId,
-        actorId: session.id,
-        action: 'LOGOUT',
-        entityType: 'user',
-        entityId: session.id,
-      },
-    })
-  }
-  clearSessionCookie()
-  return NextResponse.json({ data: { success: true } })
+  const response = NextResponse.json({ success: true })
+  response.cookies.set(COOKIE_NAME, '', {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    path: '/',
+    maxAge: 0,
+  })
+  return response
 }

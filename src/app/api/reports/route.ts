@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic'
+
 /**
  * GET  /api/reports?type=...&from=...&to=...&groupBy=...
  * POST /api/reports/export  — generate CSV or XLSX download
