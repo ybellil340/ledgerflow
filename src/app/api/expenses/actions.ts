@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic'
+
 // /api/expenses/[id]/submit  — POST
 // /api/expenses/[id]/approve — POST  
 // /api/expenses/[id]/reject  — POST

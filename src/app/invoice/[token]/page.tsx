@@ -1,3 +1,7 @@
+export const dynamic = 'force-dynamic'
+
+
+export async function generateStaticParams() { return [] }
 import { notFound } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import { Metadata } from 'next'
