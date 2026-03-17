@@ -145,8 +145,8 @@ export async function checkRateLimitRedis(
   // When UPSTASH_REDIS_REST_URL is set, use Upstash
   if (process.env.UPSTASH_REDIS_REST_URL) {
     try {
-      const { Ratelimit } = await import('@upstash/ratelimit')
-      const { Redis } = await import('@upstash/redis')
+      const { Ratelimit } = await import(/* webpackIgnore: true */ '@upstash/ratelimit')
+      const { Redis } = await import(/* webpackIgnore: true */ '@upstash/redis')
       const redis = Redis.fromEnv()
       const ratelimit = new Ratelimit({
         redis,

@@ -382,7 +382,7 @@ export async function generateInvoicePDF(invoice: InvoiceData): Promise<Buffer |
   let puppeteer: typeof import('puppeteer') | null = null
 
   try {
-    puppeteer = await import('puppeteer')
+    puppeteer = await import(/* webpackIgnore: true */ 'puppeteer')
   } catch {
     console.warn('[PDF] puppeteer not installed — returning null. Install with: npm install puppeteer')
     return null
