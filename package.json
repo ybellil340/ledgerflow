@@ -1,7 +1,7 @@
 {
   "name": "ledgerflow",
   "version": "0.1.0",
-  "description": "LedgerFlow — Financial Operating System for German SMEs",
+  "description": "LedgerFlow \u2014 Financial Operating System for German SMEs",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -53,5 +53,6 @@
     "eslint": "^8.57.0",
     "eslint-config-next": "14.2.0",
     "tsx": "^4.7.1"
-  }
+  },
+  "_buildTime": "1773722505"
 }
