@@ -4,7 +4,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import bcrypt from 'bcryptjs'
 import prisma from '@/lib/db/prisma'
-import { signToken, setSessionCookie } from '@/lib/auth/session'
+import { signToken } from '@/lib/auth/session'
 
 const SignupSchema = z.object({
   email: z.string().email(),
@@ -113,14 +113,21 @@ export async function POST(req: NextRequest) {
       isTaxAdvisor: false,
     })
 
-    setSessionCookie(token)
-
-    return NextResponse.json({
+    const COOKIE_NAME = process.env.SESSION_COOKIE_NAME ?? 'ledgerflow_session'
+    const response = NextResponse.json({
       data: {
         user: { id: result.user.id, email: result.user.email, firstName: result.user.firstName },
         organization: { id: result.org.id, name: result.org.name },
       },
     }, { status: 201 })
+    response.cookies.set(COOKIE_NAME, token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      path: '/',
+      maxAge: 60 * 60 * 24 * 7,
+    })
+    return response
   } catch (err) {
     if (err instanceof z.ZodError) {
       return NextResponse.json({ error: 'Validation failed', details: err.errors }, { status: 400 })

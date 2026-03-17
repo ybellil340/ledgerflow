@@ -280,6 +280,15 @@ export const accountingApi = {
 
   createExport: (data: CreateExportInput) =>
     api.post<ExportBatch & { preview: string; downloadUrl: string }>('/api/accounting/export', data),
+
+  generateExport: (data: any) =>
+    api.post<any>('/api/accounting/export', data),
+
+  getExportReadiness: () =>
+    api.get<any>('/api/accounting/export?type=readiness'),
+
+  seedDefaultMappings: () =>
+    api.post<any>('/api/accounting/mappings', { seedDefaults: true }),
 }
 
 // ─────────────────────────────────────────────
@@ -289,6 +298,9 @@ export const accountingApi = {
 export const cashFlowApi = {
   get: (horizon: 30 | 60 | 90 | 180 = 30, historyMonths = 6) =>
     api.get<CashFlowData>(`/api/cashflow${buildQuery({ horizon, historyMonths })}`),
+
+  getForecast: (params: { range?: string } = {}) =>
+    api.get<any>(`/api/cashflow${buildQuery(params)}`),
 
   addManualEvent: (data: {
     description: string; amount: number; expectedDate: string
@@ -326,8 +338,8 @@ export const notificationsApi = {
   list: (params: { unreadOnly?: boolean; page?: number; perPage?: number } = {}) =>
     api.get<Notification[]>(`/api/notifications${buildQuery(params)}`),
 
-  markRead: (ids: string[]) =>
-    api.patch<{ remainingUnread: number }>('/api/notifications', { ids }),
+  markRead: (idOrIds: string | string[]) =>
+    api.patch<{ remainingUnread: number }>('/api/notifications', { ids: Array.isArray(idOrIds) ? idOrIds : [idOrIds] }),
 
   markAllRead: () =>
     api.patch<{ remainingUnread: number }>('/api/notifications', { markAll: true }),
@@ -410,27 +422,26 @@ export const settingsApi = {
 // ─────────────────────────────────────────────
 
 export const adminApi = {
-  getStats: () => api.get<AdminStats>('/api/admin/stats'),
-
+  getStats: () => api.get<AdminStats>('/api/admin'),
+  getPlatformStats: () => api.get<any>('/api/admin'),
   getCompanies: (search?: string, page = 1, perPage = 25) =>
-    api.get<AdminCompany[]>(`/api/admin/companies${buildQuery({ search, page, perPage })}`),
-
-  updateCompany: (id: string, data: { isActive?: boolean; onboardingComplete?: boolean }) =>
-    api.patch<Organization>(`/api/admin/companies/${id}`, data),
-
-  getUsers: (search?: string, page = 1, perPage = 25) =>
-    api.get<AdminUser[]>(`/api/admin/users${buildQuery({ search, page, perPage })}`),
-
-  getAuditLogs: (filters: Record<string, string | undefined> = {}, page = 1, perPage = 50) =>
-    api.get<AuditLog[]>(`/api/admin/audit-logs${buildQuery({ ...filters, page, perPage })}`),
-
-  getFlags: () => api.get<FeatureFlag[]>('/api/admin/flags'),
-
-  toggleFlag: (key: string, isEnabled: boolean, organizationId?: string) =>
-    api.patch<{ success: boolean }>('/api/admin/flags', { key, isEnabled, organizationId }),
-
-  impersonate: (userId: string, organizationId: string) =>
-    api.post<{ redirectTo: string }>('/api/admin/impersonate', { userId, organizationId }),
+    api.get<any>(`/api/admin?type=companies${search ? `&search=${search}` : ''}`),
+  listOrganizations: (params: any = {}) =>
+    api.get<any>(`/api/admin?type=companies`),
+  updateCompany: (id: string, data: any) =>
+    api.patch<any>(`/api/admin`, { type: 'company', id, ...data }),
+  getUsers: (search?: string) =>
+    api.get<any>(`/api/admin?type=users${search ? `&search=${search}` : ''}`),
+  getAuditLogs: (params: any = {}) =>
+    api.get<any>(`/api/admin?type=audit${params.search ? `&search=${params.search}` : ''}&limit=${params.limit ?? 50}`),
+  listFeatureFlags: () => api.get<any[]>('/api/admin?type=flags'),
+  getFlags: () => api.get<FeatureFlag[]>('/api/admin?type=flags'),
+  setFeatureFlag: (key: string, enabled: boolean) =>
+    api.post<any>('/api/admin', { action: 'set_flag', key, enabled }),
+  toggleFlag: (key: string, isEnabled: boolean) =>
+    api.post<any>('/api/admin', { action: 'set_flag', key, enabled: isEnabled }),
+  impersonate: (orgId: string) =>
+    api.post<any>('/api/admin', { action: 'impersonate', organizationId: orgId }),
 }
 
 // ─────────────────────────────────────────────

@@ -68,18 +68,16 @@ export default function ReimbursementsPage() {
   const pendingAmount = items.filter((r) => ['SUBMITTED', 'APPROVED'].includes(r.status)).reduce((s, r) => s + r.amount, 0)
 
   return (
-    <>
-      <Header
-        title="Reimbursements"
-        subtitle={`${total} requests · out-of-pocket expenses`}
-        actions={
-          <Button variant="primary" size="sm" onClick={() => setCreateOpen(true)}>
-            + New request
-          </Button>
-        }
-      />
-
-      <div className="flex-1 overflow-y-auto p-6 space-y-4">
+    <AppShell
+      title="Reimbursements"
+      subtitle={`${total} requests · out-of-pocket expenses`}
+      action={
+        <Button variant="primary" size="sm" onClick={() => setCreateOpen(true)}>
+          + New request
+        </Button>
+      }
+    >
+      <div className="space-y-4">
 
         <div className="grid grid-cols-3 gap-3">
           {[

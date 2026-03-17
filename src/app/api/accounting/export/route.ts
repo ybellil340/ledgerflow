@@ -31,6 +31,37 @@ const CreateExportSchema = z.object({
 
 export const GET = withAuth(async (req: NextRequest, session: SessionUser) => {
   const { searchParams } = new URL(req.url)
+  const type = searchParams.get('type')
+  
+  if (type === 'readiness') {
+    const orgId = session.currentOrganizationId
+    const now = new Date()
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
+    
+    const [total, categorized, withReceipt, withVat] = await Promise.all([
+      prisma.expense.count({ where: { organizationId: orgId, deletedAt: null, expenseDate: { gte: monthStart } } }),
+      prisma.expense.count({ where: { organizationId: orgId, deletedAt: null, expenseDate: { gte: monthStart }, categoryId: { not: null } } }),
+      prisma.expense.count({ where: { organizationId: orgId, deletedAt: null, expenseDate: { gte: monthStart }, receipt: { isNot: null } } }),
+      prisma.expense.count({ where: { organizationId: orgId, deletedAt: null, expenseDate: { gte: monthStart }, vatCodeId: { not: null } } }),
+    ])
+    
+    const score = total > 0 ? Math.round(((categorized + withReceipt + withVat) / (total * 3)) * 100) : 100
+    
+    return NextResponse.json({ data: {
+      period: now.toLocaleDateString('de-DE', { month: 'long', year: 'numeric' }),
+      totalRecords: total,
+      categorized,
+      receiptMatched: withReceipt,
+      vatAssigned: withVat,
+      score,
+      issues: [
+        ...(total - categorized > 0 ? [{ type: 'uncategorized', count: total - categorized, description: `${total - categorized} expenses need categorization` }] : []),
+        ...(total - withReceipt > 0 ? [{ type: 'missing_receipt', count: total - withReceipt, description: `${total - withReceipt} expenses missing receipts` }] : []),
+      ],
+    }})
+  }
+
+  const { searchParams } = new URL(req.url)
   const page = parseInt(searchParams.get('page') ?? '1')
   const perPage = Math.min(parseInt(searchParams.get('perPage') ?? '20'), 50)
 

@@ -4,7 +4,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import bcrypt from 'bcryptjs'
 import prisma from '@/lib/db/prisma'
-import { withAuth, signToken, setSessionCookie } from '@/lib/auth/session'
+import { withAuth, signToken } from '@/lib/auth/session'
 import type { SessionUser } from '@/types'
 
 // ─── POST /api/auth/invite — send invitation ─────────
