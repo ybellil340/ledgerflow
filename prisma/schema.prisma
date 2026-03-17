@@ -1,0 +1,1174 @@
+// LedgerFlow - Full Database Schema
+// German SME Financial Operating System
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────────────────────────
+// ENUMS
+// ─────────────────────────────────────────────
+
+enum UserRole {
+  SUPER_ADMIN
+  COMPANY_ADMIN
+  FINANCE_MANAGER
+  EMPLOYEE
+  APPROVER
+  TAX_ADVISOR
+}
+
+enum MembershipStatus {
+  ACTIVE
+  INVITED
+  SUSPENDED
+  REMOVED
+}
+
+enum CardType {
+  VIRTUAL
+  PHYSICAL
+}
+
+enum CardStatus {
+  ACTIVE
+  FROZEN
+  CANCELLED
+  REQUESTED
+  PENDING_ACTIVATION
+}
+
+enum LimitPeriod {
+  DAILY
+  WEEKLY
+  MONTHLY
+  ONE_TIME
+  LIFETIME
+}
+
+enum TransactionStatus {
+  UNCATEGORIZED
+  CATEGORIZED
+  MATCHED
+  RECONCILED
+  EXPORTED
+  FLAGGED
+  PERSONAL
+}
+
+enum ExpenseStatus {
+  DRAFT
+  SUBMITTED
+  PENDING_APPROVAL
+  APPROVED
+  REJECTED
+  EXPORTED
+  FLAGGED
+}
+
+enum ReimbursementStatus {
+  DRAFT
+  SUBMITTED
+  APPROVED
+  REJECTED
+  SCHEDULED
+  PAID
+}
+
+enum SpendRequestStatus {
+  DRAFT
+  SUBMITTED
+  APPROVED
+  REJECTED
+  EXPIRED
+}
+
+enum InvoiceStatus {
+  DRAFT
+  PENDING_APPROVAL
+  APPROVED
+  SCHEDULED_PAYMENT
+  PAID
+  OVERDUE
+  EXPORTED
+  CANCELLED
+}
+
+enum CustomerInvoiceStatus {
+  DRAFT
+  SENT
+  VIEWED
+  PARTIALLY_PAID
+  PAID
+  OVERDUE
+  CANCELLED
+}
+
+enum ApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  ESCALATED
+  AUTO_APPROVED
+}
+
+enum ExportFormat {
+  CSV
+  DATEV
+  XLSX
+  JSON
+}
+
+enum ExportStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+enum NotificationChannel {
+  IN_APP
+  EMAIL
+  SMS
+}
+
+enum AuditAction {
+  CREATE
+  UPDATE
+  DELETE
+  APPROVE
+  REJECT
+  EXPORT
+  LOGIN
+  LOGOUT
+  IMPERSONATE
+  ROLE_CHANGE
+  CARD_FREEZE
+  CARD_UNFREEZE
+  PERIOD_LOCK
+}
+
+enum PlanType {
+  STARTER
+  GROWTH
+  PRO
+  ENTERPRISE
+}
+
+enum SubscriptionStatus {
+  TRIALING
+  ACTIVE
+  PAST_DUE
+  CANCELLED
+  PAUSED
+}
+
+enum CommentVisibility {
+  INTERNAL
+  EXTERNAL
+}
+
+// ─────────────────────────────────────────────
+// USER & AUTH
+// ─────────────────────────────────────────────
+
+model User {
+  id                String    @id @default(cuid())
+  email             String    @unique
+  emailVerified     DateTime?
+  passwordHash      String?
+  firstName         String
+  lastName          String
+  phone             String?
+  avatarUrl         String?
+  twoFactorEnabled  Boolean   @default(false)
+  twoFactorSecret   String?
+  locale            String    @default("de-DE")
+  timezone          String    @default("Europe/Berlin")
+  lastLoginAt       DateTime?
+  lastLoginIp       String?
+  isActive          Boolean   @default(true)
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  deletedAt         DateTime?
+
+  memberships       OrganizationMembership[]
+  ownedOrganizations Organization[] @relation("OrgOwner")
+  expenses          Expense[]
+  reimbursements    Reimbursement[]
+  spendRequests     SpendRequest[]
+  cards             Card[]
+  comments          Comment[]
+  notifications     Notification[]
+  auditLogs         AuditLog[] @relation("AuditActor")
+  approvalActions   ApprovalAction[]
+  taxAdvisorProfile TaxAdvisorProfile?
+  sessions          Session[]
+
+  @@index([email])
+  @@index([isActive])
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([token])
+  @@index([userId])
+}
+
+model Invitation {
+  id             String    @id @default(cuid())
+  organizationId String
+  email          String
+  role           UserRole
+  invitedById    String
+  token          String    @unique @default(cuid())
+  expiresAt      DateTime
+  acceptedAt     DateTime?
+  createdAt      DateTime  @default(now())
+  organization   Organization @relation(fields: [organizationId], references: [id])
+
+  @@index([token])
+  @@index([email])
+}
+
+// ─────────────────────────────────────────────
+// ORGANIZATION
+// ─────────────────────────────────────────────
+
+model Organization {
+  id                 String   @id @default(cuid())
+  name               String
+  legalName          String
+  tradingName        String?
+  registrationNumber String?
+  vatId              String?
+  legalForm          String?  // GmbH, AG, GbR, etc.
+  country            String   @default("DE")
+  addressLine1       String?
+  addressLine2       String?
+  city               String?
+  postalCode         String?
+  state              String?
+  industry           String?
+  companySize        String?
+  expectedMonthlySpend Decimal? @db.Decimal(15, 2)
+  accountingSoftware String?
+  ownerId            String
+  logoUrl            String?
+  isActive           Boolean  @default(true)
+  onboardingComplete Boolean  @default(false)
+  onboardingStep     Int      @default(1)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  deletedAt          DateTime?
+
+  owner              User     @relation("OrgOwner", fields: [ownerId], references: [id])
+  memberships        OrganizationMembership[]
+  departments        Department[]
+  costCenters        CostCenter[]
+  cards              Card[]
+  transactions       Transaction[]
+  expenses           Expense[]
+  reimbursements     Reimbursement[]
+  spendRequests      SpendRequest[]
+  suppliers          Supplier[]
+  supplierInvoices   SupplierInvoice[]
+  customers          Customer[]
+  customerInvoices   CustomerInvoice[]
+  accountingMappings AccountingMapping[]
+  vatCodes           VATCode[]
+  exportBatches      ExportBatch[]
+  approvalPolicies   ApprovalPolicy[]
+  subscription       Subscription?
+  taxAdvisorLinks    TaxAdvisorClientLink[]
+  invitations        Invitation[]
+  integrationConnections IntegrationConnection[]
+  featureFlags       OrganizationFeatureFlag[]
+  auditLogs          AuditLog[]
+  notifications      Notification[]
+
+  @@index([ownerId])
+  @@index([vatId])
+}
+
+model OrganizationMembership {
+  id             String           @id @default(cuid())
+  organizationId String
+  userId         String
+  role           UserRole
+  status         MembershipStatus @default(ACTIVE)
+  departmentId   String?
+  joinedAt       DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  createdAt      DateTime         @default(now())
+
+  organization   Organization     @relation(fields: [organizationId], references: [id])
+  user           User             @relation(fields: [userId], references: [id])
+  department     Department?      @relation(fields: [departmentId], references: [id])
+
+  @@unique([organizationId, userId])
+  @@index([userId])
+  @@index([organizationId])
+}
+
+model Department {
+  id             String   @id @default(cuid())
+  organizationId String
+  name           String
+  code           String?
+  parentId       String?
+  managerId      String?
+  budgetMonthly  Decimal? @db.Decimal(15, 2)
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization   Organization             @relation(fields: [organizationId], references: [id])
+  parent         Department?              @relation("DeptHierarchy", fields: [parentId], references: [id])
+  children       Department[]             @relation("DeptHierarchy")
+  memberships    OrganizationMembership[]
+  expenses       Expense[]
+  costCenters    CostCenter[]
+
+  @@unique([organizationId, code])
+  @@index([organizationId])
+}
+
+model CostCenter {
+  id             String   @id @default(cuid())
+  organizationId String
+  departmentId   String?
+  name           String
+  code           String
+  description    String?
+  budgetMonthly  Decimal? @db.Decimal(15, 2)
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  department     Department?  @relation(fields: [departmentId], references: [id])
+  expenses       Expense[]
+  invoiceLines   InvoiceLineItem[]
+
+  @@unique([organizationId, code])
+  @@index([organizationId])
+}
+
+// ─────────────────────────────────────────────
+// APPROVAL WORKFLOW ENGINE
+// ─────────────────────────────────────────────
+
+model ApprovalPolicy {
+  id             String   @id @default(cuid())
+  organizationId String
+  name           String
+  entityType     String   // expense | reimbursement | supplier_invoice | spend_request | card_request
+  isActive       Boolean  @default(true)
+  isDefault      Boolean  @default(false)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization   Organization   @relation(fields: [organizationId], references: [id])
+  rules          ApprovalRule[]
+  steps          ApprovalStep[]
+
+  @@index([organizationId, entityType])
+}
+
+model ApprovalRule {
+  id             String   @id @default(cuid())
+  policyId       String
+  priority       Int
+  // Conditions (JSON for flexibility)
+  conditions     Json     // { amountGte, amountLt, departmentId, costCenterId, categoryId, employeeLevel }
+  createdAt      DateTime @default(now())
+
+  policy         ApprovalPolicy @relation(fields: [policyId], references: [id])
+
+  @@index([policyId])
+}
+
+model ApprovalStep {
+  id              String   @id @default(cuid())
+  policyId        String
+  stepNumber      Int
+  name            String
+  approverId      String?  // specific user
+  approverRole    UserRole?// any user with this role
+  escalateDays    Int?     // auto-escalate after N days
+  autoApproveBelow Decimal? @db.Decimal(15, 2)
+  createdAt       DateTime @default(now())
+
+  policy          ApprovalPolicy  @relation(fields: [policyId], references: [id])
+  approvalActions ApprovalAction[]
+
+  @@unique([policyId, stepNumber])
+  @@index([policyId])
+}
+
+model ApprovalAction {
+  id          String         @id @default(cuid())
+  stepId      String
+  actorId     String
+  entityType  String
+  entityId    String
+  status      ApprovalStatus
+  comment     String?
+  decidedAt   DateTime       @default(now())
+  createdAt   DateTime       @default(now())
+
+  step        ApprovalStep   @relation(fields: [stepId], references: [id])
+  actor       User           @relation(fields: [actorId], references: [id])
+
+  @@index([entityType, entityId])
+  @@index([actorId])
+}
+
+// ─────────────────────────────────────────────
+// CARDS
+// ─────────────────────────────────────────────
+
+model Card {
+  id                String     @id @default(cuid())
+  organizationId    String
+  userId            String
+  type              CardType
+  status            CardStatus @default(REQUESTED)
+  lastFour          String?
+  cardholderName    String
+  expiryMonth       Int?
+  expiryYear        Int?
+  currency          String     @default("EUR")
+  providerCardId    String?    // external card issuer ID
+  providerReference String?
+  purpose           String?
+  issuedAt          DateTime?
+  frozenAt          DateTime?
+  cancelledAt       DateTime?
+  createdAt         DateTime   @default(now())
+  updatedAt         DateTime   @updatedAt
+
+  organization      Organization   @relation(fields: [organizationId], references: [id])
+  user              User           @relation(fields: [userId], references: [id])
+  limitRules        CardLimitRule[]
+  transactions      Transaction[]
+
+  @@index([organizationId])
+  @@index([userId])
+  @@index([status])
+}
+
+model CardLimitRule {
+  id              String      @id @default(cuid())
+  cardId          String
+  period          LimitPeriod
+  limitAmount     Decimal     @db.Decimal(15, 2)
+  spentAmount     Decimal     @default(0) @db.Decimal(15, 2)
+  allowedMerchantCategories String[] // MCC codes
+  blockedMerchantCategories String[]
+  allowedMerchants          String[]
+  blockedMerchants          String[]
+  resetAt         DateTime?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  card            Card        @relation(fields: [cardId], references: [id])
+
+  @@unique([cardId, period])
+}
+
+// ─────────────────────────────────────────────
+// TRANSACTIONS
+// ─────────────────────────────────────────────
+
+model Transaction {
+  id               String            @id @default(cuid())
+  organizationId   String
+  cardId           String?
+  externalId       String?           // from bank/card provider
+  merchant         String
+  merchantCategory String?           // MCC code
+  amount           Decimal           @db.Decimal(15, 2)
+  currency         String            @default("EUR")
+  amountEur        Decimal?          @db.Decimal(15, 2) // converted
+  exchangeRate     Decimal?          @db.Decimal(10, 6)
+  description      String?
+  transactionDate  DateTime
+  postedDate       DateTime?
+  status           TransactionStatus @default(UNCATEGORIZED)
+  isPersonal       Boolean           @default(false)
+  isSplit          Boolean           @default(false)
+  parentId         String?           // for split transactions
+  categoryId       String?
+  vatCodeId        String?
+  accountingCode   String?
+  notes            String?
+  importedAt       DateTime          @default(now())
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+
+  organization     Organization @relation(fields: [organizationId], references: [id])
+  card             Card?        @relation(fields: [cardId], references: [id])
+  parent           Transaction? @relation("SplitTx", fields: [parentId], references: [id])
+  splits           Transaction[] @relation("SplitTx")
+  receipt          Receipt?
+  expense          Expense?
+  vatCode          VATCode?     @relation(fields: [vatCodeId], references: [id])
+
+  @@index([organizationId, transactionDate])
+  @@index([status])
+  @@index([externalId])
+}
+
+// ─────────────────────────────────────────────
+// RECEIPTS
+// ─────────────────────────────────────────────
+
+model Receipt {
+  id              String   @id @default(cuid())
+  transactionId   String?  @unique
+  expenseId       String?  @unique
+  organizationId  String
+  uploadedById    String
+  fileUrl         String
+  fileName        String
+  fileSize        Int
+  mimeType        String
+  // OCR extracted fields
+  ocrProcessed    Boolean  @default(false)
+  ocrMerchant     String?
+  ocrDate         DateTime?
+  ocrTotal        Decimal? @db.Decimal(15, 2)
+  ocrVatAmount    Decimal? @db.Decimal(15, 2)
+  ocrCurrency     String?
+  ocrRawData      Json?
+  // Manual overrides
+  merchant        String?
+  receiptDate     DateTime?
+  total           Decimal? @db.Decimal(15, 2)
+  vatAmount       Decimal? @db.Decimal(15, 2)
+  currency        String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  transaction     Transaction? @relation(fields: [transactionId], references: [id])
+  expense         Expense?     @relation(fields: [expenseId], references: [id])
+
+  @@index([organizationId])
+}
+
+// ─────────────────────────────────────────────
+// EXPENSES
+// ─────────────────────────────────────────────
+
+model Expense {
+  id             String        @id @default(cuid())
+  organizationId String
+  userId         String
+  transactionId  String?       @unique
+  merchant       String
+  expenseDate    DateTime
+  currency       String        @default("EUR")
+  grossAmount    Decimal       @db.Decimal(15, 2)
+  vatRate        Decimal?      @db.Decimal(5, 2) // e.g. 19.00
+  vatAmount      Decimal?      @db.Decimal(15, 2)
+  netAmount      Decimal?      @db.Decimal(15, 2)
+  vatCodeId      String?
+  categoryId     String?
+  departmentId   String?
+  costCenterId   String?
+  projectCode    String?
+  paymentMethod  String?       // card | cash | bank_transfer
+  cardId         String?
+  notes          String?
+  status         ExpenseStatus @default(DRAFT)
+  approvalStatus ApprovalStatus?
+  currentStepId  String?
+  exportedAt     DateTime?
+  exportBatchId  String?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  deletedAt      DateTime?
+
+  organization   Organization  @relation(fields: [organizationId], references: [id])
+  user           User          @relation(fields: [userId], references: [id])
+  department     Department?   @relation(fields: [departmentId], references: [id])
+  costCenter     CostCenter?   @relation(fields: [costCenterId], references: [id])
+  vatCode        VATCode?      @relation(fields: [vatCodeId], references: [id])
+  receipt        Receipt?
+  exportBatch    ExportBatch?  @relation(fields: [exportBatchId], references: [id])
+  comments       Comment[]     @relation("ExpenseComments")
+  attachments    Attachment[]  @relation("ExpenseAttachments")
+
+  @@index([organizationId, status])
+  @@index([userId])
+  @@index([expenseDate])
+}
+
+// ─────────────────────────────────────────────
+// REIMBURSEMENTS
+// ─────────────────────────────────────────────
+
+model Reimbursement {
+  id             String              @id @default(cuid())
+  organizationId String
+  userId         String
+  title          String
+  description    String?
+  currency       String              @default("EUR")
+  amount         Decimal             @db.Decimal(15, 2)
+  vatAmount      Decimal?            @db.Decimal(15, 2)
+  paymentDate    DateTime?
+  bankAccount    String?             // IBAN (encrypted)
+  status         ReimbursementStatus @default(DRAFT)
+  approvalStatus ApprovalStatus?
+  paidAt         DateTime?
+  paidById       String?
+  exportBatchId  String?
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  user           User         @relation(fields: [userId], references: [id])
+  exportBatch    ExportBatch? @relation(fields: [exportBatchId], references: [id])
+  attachments    Attachment[] @relation("ReimbAttachments")
+  comments       Comment[]    @relation("ReimbComments")
+
+  @@index([organizationId, status])
+  @@index([userId])
+}
+
+// ─────────────────────────────────────────────
+// SPEND REQUESTS
+// ─────────────────────────────────────────────
+
+model SpendRequest {
+  id              String           @id @default(cuid())
+  organizationId  String
+  userId          String
+  purpose         String
+  merchant        String?
+  estimatedAmount Decimal          @db.Decimal(15, 2)
+  currency        String           @default("EUR")
+  departmentId    String?
+  costCenterId    String?
+  justification   String?
+  urgency         String?          // low | normal | high | urgent
+  expectedDate    DateTime?
+  status          SpendRequestStatus @default(DRAFT)
+  approvalStatus  ApprovalStatus?
+  approvedAmount  Decimal?         @db.Decimal(15, 2)
+  expiresAt       DateTime?
+  // Result of approval
+  generatedCardId String?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  organization    Organization @relation(fields: [organizationId], references: [id])
+  user            User         @relation(fields: [userId], references: [id])
+  attachments     Attachment[] @relation("SpendReqAttachments")
+  comments        Comment[]    @relation("SpendReqComments")
+
+  @@index([organizationId, status])
+  @@index([userId])
+}
+
+// ─────────────────────────────────────────────
+// SUPPLIER INVOICES (AP)
+// ─────────────────────────────────────────────
+
+model Supplier {
+  id             String   @id @default(cuid())
+  organizationId String
+  name           String
+  legalName      String?
+  vatId          String?
+  email          String?
+  phone          String?
+  addressLine1   String?
+  city           String?
+  postalCode     String?
+  country        String   @default("DE")
+  iban           String?  // encrypted
+  bic            String?
+  paymentTerms   Int?     // days
+  notes          String?
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization   Organization      @relation(fields: [organizationId], references: [id])
+  invoices       SupplierInvoice[]
+
+  @@unique([organizationId, vatId])
+  @@index([organizationId])
+}
+
+model SupplierInvoice {
+  id              String        @id @default(cuid())
+  organizationId  String
+  supplierId      String
+  invoiceNumber   String
+  invoiceDate     DateTime
+  dueDate         DateTime
+  currency        String        @default("EUR")
+  grossAmount     Decimal       @db.Decimal(15, 2)
+  vatAmount       Decimal?      @db.Decimal(15, 2)
+  netAmount       Decimal?      @db.Decimal(15, 2)
+  vatCodeId       String?
+  categoryId      String?
+  status          InvoiceStatus @default(DRAFT)
+  approvalStatus  ApprovalStatus?
+  isDuplicate     Boolean       @default(false)
+  duplicateOfId   String?
+  paymentRef      String?
+  paidAt          DateTime?
+  paidAmount      Decimal?      @db.Decimal(15, 2)
+  exportBatchId   String?
+  notes           String?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  deletedAt       DateTime?
+
+  organization    Organization  @relation(fields: [organizationId], references: [id])
+  supplier        Supplier      @relation(fields: [supplierId], references: [id])
+  vatCode         VATCode?      @relation(fields: [vatCodeId], references: [id])
+  lineItems       InvoiceLineItem[]
+  attachments     Attachment[]  @relation("SupInvAttachments")
+  comments        Comment[]     @relation("SupInvComments")
+  exportBatch     ExportBatch?  @relation(fields: [exportBatchId], references: [id])
+
+  @@unique([organizationId, supplierId, invoiceNumber])
+  @@index([organizationId, status])
+  @@index([dueDate])
+}
+
+// ─────────────────────────────────────────────
+// CUSTOMER INVOICES (AR)
+// ─────────────────────────────────────────────
+
+model Customer {
+  id             String   @id @default(cuid())
+  organizationId String
+  name           String
+  legalName      String?
+  vatId          String?
+  email          String?
+  phone          String?
+  addressLine1   String?
+  city           String?
+  postalCode     String?
+  country        String   @default("DE")
+  paymentTerms   Int      @default(30)
+  currency       String   @default("EUR")
+  notes          String?
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization   Organization      @relation(fields: [organizationId], references: [id])
+  invoices       CustomerInvoice[]
+
+  @@index([organizationId])
+}
+
+model CustomerInvoice {
+  id             String                @id @default(cuid())
+  organizationId String
+  customerId     String
+  invoiceNumber  String
+  issueDate      DateTime
+  dueDate        DateTime
+  currency       String                @default("EUR")
+  subtotal       Decimal               @db.Decimal(15, 2)
+  vatAmount      Decimal?              @db.Decimal(15, 2)
+  total          Decimal               @db.Decimal(15, 2)
+  paidAmount     Decimal               @default(0) @db.Decimal(15, 2)
+  paymentTerms   Int                   @default(30)
+  status         CustomerInvoiceStatus @default(DRAFT)
+  isRecurring    Boolean               @default(false)
+  recurringRule  Json?                 // { frequency, interval, endDate }
+  sentAt         DateTime?
+  viewedAt       DateTime?
+  paidAt         DateTime?
+  notes          String?
+  exportBatchId  String?
+  createdAt      DateTime              @default(now())
+  updatedAt      DateTime              @updatedAt
+  deletedAt      DateTime?
+
+  organization   Organization    @relation(fields: [organizationId], references: [id])
+  customer       Customer        @relation(fields: [customerId], references: [id])
+  lineItems      InvoiceLineItem[]
+  exportBatch    ExportBatch?    @relation(fields: [exportBatchId], references: [id])
+  comments       Comment[]       @relation("CustInvComments")
+
+  @@unique([organizationId, invoiceNumber])
+  @@index([organizationId, status])
+  @@index([dueDate])
+}
+
+model InvoiceLineItem {
+  id               String   @id @default(cuid())
+  supplierInvoiceId String?
+  customerInvoiceId String?
+  costCenterId     String?
+  description      String
+  quantity         Decimal  @db.Decimal(10, 3)
+  unitPrice        Decimal  @db.Decimal(15, 4)
+  vatRate          Decimal  @db.Decimal(5, 2)
+  vatAmount        Decimal  @db.Decimal(15, 2)
+  netAmount        Decimal  @db.Decimal(15, 2)
+  grossAmount      Decimal  @db.Decimal(15, 2)
+  accountingCode   String?
+  sortOrder        Int      @default(0)
+  createdAt        DateTime @default(now())
+
+  supplierInvoice  SupplierInvoice? @relation(fields: [supplierInvoiceId], references: [id])
+  customerInvoice  CustomerInvoice? @relation(fields: [customerInvoiceId], references: [id])
+  costCenter       CostCenter?      @relation(fields: [costCenterId], references: [id])
+}
+
+// ─────────────────────────────────────────────
+// ACCOUNTING & DATEV
+// ─────────────────────────────────────────────
+
+model AccountingMapping {
+  id             String   @id @default(cuid())
+  organizationId String
+  categoryName   String
+  accountingCode String   // DATEV SKR03/SKR04 account number
+  description    String?
+  vatCodeId      String?
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  vatCode        VATCode?     @relation(fields: [vatCodeId], references: [id])
+
+  @@unique([organizationId, categoryName])
+  @@index([organizationId])
+}
+
+model VATCode {
+  id             String   @id @default(cuid())
+  organizationId String
+  code           String   // e.g. VSt19, USt7, EUV
+  description    String
+  rate           Decimal  @db.Decimal(5, 2) // 0.00, 7.00, 19.00
+  datevCode      String?  // DATEV specific code
+  isDeductible   Boolean  @default(true)
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+
+  organization      Organization      @relation(fields: [organizationId], references: [id])
+  transactions      Transaction[]
+  expenses          Expense[]
+  supplierInvoices  SupplierInvoice[]
+  accountingMappings AccountingMapping[]
+
+  @@unique([organizationId, code])
+}
+
+model ExportBatch {
+  id             String       @id @default(cuid())
+  organizationId String
+  createdById    String
+  format         ExportFormat
+  status         ExportStatus @default(PENDING)
+  periodStart    DateTime
+  periodEnd      DateTime
+  fileUrl        String?
+  fileName       String?
+  recordCount    Int?
+  totalAmount    Decimal?     @db.Decimal(15, 2)
+  isLocked       Boolean      @default(false) // period locked after export
+  lockedAt       DateTime?
+  errorMessage   String?
+  metadata       Json?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  organization   Organization      @relation(fields: [organizationId], references: [id])
+  expenses       Expense[]
+  reimbursements Reimbursement[]
+  supplierInvoices SupplierInvoice[]
+  customerInvoices CustomerInvoice[]
+  records        ExportRecord[]
+
+  @@index([organizationId])
+  @@index([periodStart, periodEnd])
+}
+
+model ExportRecord {
+  id            String   @id @default(cuid())
+  batchId       String
+  entityType    String   // expense | reimbursement | supplier_invoice | customer_invoice
+  entityId      String
+  accountingCode String
+  datevEntry    Json?    // full DATEV record snapshot (immutable)
+  snapshotData  Json     // full entity snapshot at export time
+  createdAt     DateTime @default(now())
+
+  batch         ExportBatch @relation(fields: [batchId], references: [id])
+
+  @@index([batchId])
+  @@index([entityType, entityId])
+}
+
+// ─────────────────────────────────────────────
+// TAX ADVISOR
+// ─────────────────────────────────────────────
+
+model TaxAdvisorFirm {
+  id          String   @id @default(cuid())
+  name        String
+  registrationNumber String?
+  email       String?
+  phone       String?
+  city        String?
+  country     String   @default("DE")
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  profiles    TaxAdvisorProfile[]
+  clientLinks TaxAdvisorClientLink[]
+}
+
+model TaxAdvisorProfile {
+  id       String @id @default(cuid())
+  userId   String @unique
+  firmId   String
+  title    String?
+  isLead   Boolean @default(false)
+  createdAt DateTime @default(now())
+
+  user     User           @relation(fields: [userId], references: [id])
+  firm     TaxAdvisorFirm @relation(fields: [firmId], references: [id])
+}
+
+model TaxAdvisorClientLink {
+  id             String   @id @default(cuid())
+  firmId         String
+  organizationId String
+  assignedToId   String?  // specific advisor
+  canExport      Boolean  @default(true)
+  canComment     Boolean  @default(true)
+  canLockPeriods Boolean  @default(false)
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  firm           TaxAdvisorFirm @relation(fields: [firmId], references: [id])
+  organization   Organization   @relation(fields: [organizationId], references: [id])
+
+  @@unique([firmId, organizationId])
+  @@index([organizationId])
+}
+
+// ─────────────────────────────────────────────
+// COMMENTS & ATTACHMENTS
+// ─────────────────────────────────────────────
+
+model Comment {
+  id               String            @id @default(cuid())
+  authorId         String
+  content          String
+  visibility       CommentVisibility @default(INTERNAL)
+  entityType       String
+  entityId         String
+  parentId         String?
+  // entity relations
+  expenseId        String?
+  reimbursementId  String?
+  spendRequestId   String?
+  supplierInvoiceId String?
+  customerInvoiceId String?
+  isEdited         Boolean           @default(false)
+  editedAt         DateTime?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  deletedAt        DateTime?
+
+  author           User     @relation(fields: [authorId], references: [id])
+  parent           Comment? @relation("CommentThread", fields: [parentId], references: [id])
+  replies          Comment[] @relation("CommentThread")
+  expense          Expense?         @relation("ExpenseComments", fields: [expenseId], references: [id])
+  reimbursement    Reimbursement?   @relation("ReimbComments", fields: [reimbursementId], references: [id])
+  spendRequest     SpendRequest?    @relation("SpendReqComments", fields: [spendRequestId], references: [id])
+  supplierInvoice  SupplierInvoice? @relation("SupInvComments", fields: [supplierInvoiceId], references: [id])
+  customerInvoice  CustomerInvoice? @relation("CustInvComments", fields: [customerInvoiceId], references: [id])
+
+  @@index([entityType, entityId])
+  @@index([authorId])
+}
+
+model Attachment {
+  id                String   @id @default(cuid())
+  uploadedById      String
+  fileUrl           String
+  fileName          String
+  fileSize          Int
+  mimeType          String
+  entityType        String
+  entityId          String
+  expenseId         String?
+  reimbursementId   String?
+  spendRequestId    String?
+  supplierInvoiceId String?
+  createdAt         DateTime @default(now())
+
+  expense           Expense?         @relation("ExpenseAttachments", fields: [expenseId], references: [id])
+  reimbursement     Reimbursement?   @relation("ReimbAttachments", fields: [reimbursementId], references: [id])
+  spendRequest      SpendRequest?    @relation("SpendReqAttachments", fields: [spendRequestId], references: [id])
+  supplierInvoice   SupplierInvoice? @relation("SupInvAttachments", fields: [supplierInvoiceId], references: [id])
+
+  @@index([entityType, entityId])
+}
+
+// ─────────────────────────────────────────────
+// NOTIFICATIONS
+// ─────────────────────────────────────────────
+
+model Notification {
+  id             String   @id @default(cuid())
+  organizationId String?
+  userId         String
+  type           String   // missing_receipt | expense_approved | invoice_overdue | etc.
+  title          String
+  message        String
+  entityType     String?
+  entityId       String?
+  channel        NotificationChannel @default(IN_APP)
+  isRead         Boolean  @default(false)
+  readAt         DateTime?
+  sentAt         DateTime?
+  metadata       Json?
+  createdAt      DateTime @default(now())
+
+  user           User          @relation(fields: [userId], references: [id])
+  organization   Organization? @relation(fields: [organizationId], references: [id])
+
+  @@index([userId, isRead])
+  @@index([organizationId])
+}
+
+// ─────────────────────────────────────────────
+// AUDIT LOGS
+// ─────────────────────────────────────────────
+
+model AuditLog {
+  id             String      @id @default(cuid())
+  organizationId String?
+  actorId        String
+  action         AuditAction
+  entityType     String
+  entityId       String
+  before         Json?       // snapshot before
+  after          Json?       // snapshot after
+  ipAddress      String?
+  userAgent      String?
+  metadata       Json?
+  createdAt      DateTime    @default(now())
+
+  actor          User          @relation("AuditActor", fields: [actorId], references: [id])
+  organization   Organization? @relation(fields: [organizationId], references: [id])
+
+  @@index([organizationId, createdAt])
+  @@index([actorId])
+  @@index([entityType, entityId])
+}
+
+// ─────────────────────────────────────────────
+// BILLING & SUBSCRIPTIONS
+// ─────────────────────────────────────────────
+
+model Subscription {
+  id                   String             @id @default(cuid())
+  organizationId       String             @unique
+  plan                 PlanType           @default(STARTER)
+  status               SubscriptionStatus @default(TRIALING)
+  stripeCustomerId     String?
+  stripeSubscriptionId String?
+  currentPeriodStart   DateTime?
+  currentPeriodEnd     DateTime?
+  trialEndsAt          DateTime?
+  cancelledAt          DateTime?
+  // Usage limits per plan
+  maxUsers             Int                @default(5)
+  maxCards             Int                @default(10)
+  maxMonthlyExpenses   Int                @default(100)
+  // Overage
+  extraUsers           Int                @default(0)
+  extraCards           Int                @default(0)
+  couponCode           String?
+  discountPercent      Decimal?           @db.Decimal(5, 2)
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+
+  organization         Organization       @relation(fields: [organizationId], references: [id])
+}
+
+// ─────────────────────────────────────────────
+// FEATURE FLAGS & INTEGRATIONS
+// ─────────────────────────────────────────────
+
+model FeatureFlag {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  description String?
+  isEnabled   Boolean  @default(false)
+  rolloutPercent Int   @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  organizationOverrides OrganizationFeatureFlag[]
+}
+
+model OrganizationFeatureFlag {
+  id             String   @id @default(cuid())
+  organizationId String
+  featureFlagId  String
+  isEnabled      Boolean
+  createdAt      DateTime @default(now())
+
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  featureFlag    FeatureFlag  @relation(fields: [featureFlagId], references: [id])
+
+  @@unique([organizationId, featureFlagId])
+}
+
+model IntegrationConnection {
+  id             String   @id @default(cuid())
+  organizationId String
+  provider       String   // datev | lexoffice | sevdesk | stripe | plaid | etc.
+  name           String
+  status         String   @default("connected")
+  config         Json?    // encrypted config
+  lastSyncAt     DateTime?
+  lastError      String?
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization   Organization @relation(fields: [organizationId], references: [id])
+
+  @@unique([organizationId, provider])
+  @@index([organizationId])
+}

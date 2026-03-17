@@ -1,0 +1,73 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  *, *::before, *::after { box-sizing: border-box; }
+
+  :root {
+    --font-sans: 'DM Sans', system-ui, -apple-system, sans-serif;
+    --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+  }
+
+  html { font-family: var(--font-sans); }
+
+  body {
+    @apply bg-gray-50 text-gray-900;
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+  }
+
+  /* Smooth scrollbars */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: #9ca3af; }
+
+  /* Number inputs — hide arrows */
+  input[type='number']::-webkit-inner-spin-button,
+  input[type='number']::-webkit-outer-spin-button { -webkit-appearance: none; }
+
+  /* Focus visible */
+  :focus-visible { outline: 2px solid #3b82f6; outline-offset: 2px; }
+}
+
+@layer components {
+  /* Tabular numbers for financial data */
+  .tabular-nums { font-variant-numeric: tabular-nums; }
+
+  /* Card hover elevation */
+  .card-hover { @apply transition-shadow duration-200 hover:shadow-md; }
+
+  /* Status dots */
+  .status-dot { @apply inline-block w-1.5 h-1.5 rounded-full mr-1.5; }
+
+  /* Skeleton loading */
+  .skeleton {
+    @apply bg-gray-100 rounded animate-pulse;
+    background: linear-gradient(90deg, #f3f4f6 25%, #e5e7eb 50%, #f3f4f6 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+  }
+
+  @keyframes shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+  }
+
+  /* Receipt upload drop zone */
+  .drop-zone {
+    @apply border-2 border-dashed border-gray-200 rounded-xl p-8 text-center
+           transition-all duration-200 cursor-pointer;
+  }
+  .drop-zone:hover, .drop-zone.drag-over {
+    @apply border-blue-400 bg-blue-50;
+  }
+}
+
+@layer utilities {
+  /* Prevent text selection on UI elements */
+  .no-select { user-select: none; }
+
+  /* Line clamp utilities (beyond Tailwind defaults) */
+  .line-clamp-4 { display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
+}

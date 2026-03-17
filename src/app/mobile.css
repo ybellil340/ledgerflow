@@ -1,0 +1,226 @@
+/**
+ * LedgerFlow — Mobile responsive CSS
+ * Add to globals.css or import separately
+ *
+ * Breakpoints:
+ *   sm  → 640px   (large phone landscape)
+ *   md  → 768px   (tablet portrait)
+ *   lg  → 1024px  (tablet landscape / small laptop)
+ *   xl  → 1280px  (desktop)
+ */
+
+/* ─── Mobile sidebar overlay ─────────────────────────────────────────────────── */
+
+@media (max-width: 768px) {
+  #app-root {
+    flex-direction: column;
+  }
+
+  #sidebar {
+    /* Hidden by default on mobile — toggled via .sidebar-open on #app-root */
+    position: fixed;
+    inset-y: 0;
+    left: 0;
+    z-index: 50;
+    transform: translateX(-100%);
+    transition: transform 0.2s ease;
+    width: 240px;
+  }
+
+  #app-root.sidebar-open #sidebar {
+    transform: translateX(0);
+  }
+
+  #sidebar-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.3);
+    z-index: 40;
+  }
+
+  #app-root.sidebar-open #sidebar-overlay {
+    display: block;
+  }
+
+  #main {
+    width: 100%;
+    overflow-x: hidden;
+  }
+
+  /* Bottom nav bar on mobile */
+  #mobile-nav {
+    display: flex;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 60px;
+    background: #1a1a2e;
+    border-top: 1px solid rgba(255,255,255,0.07);
+    z-index: 30;
+    padding: 0 8px;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .mobile-nav-item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    color: rgba(255,255,255,0.35);
+    font-size: 9px;
+    cursor: pointer;
+    border-radius: 8px;
+    transition: color 0.12s;
+    padding: 6px 2px;
+  }
+
+  .mobile-nav-item.active {
+    color: #fff;
+    background: rgba(255,255,255,0.1);
+  }
+
+  .mobile-nav-item svg {
+    width: 20px;
+    height: 20px;
+  }
+
+  /* Page area gets bottom padding for mobile nav */
+  #page-area {
+    padding-bottom: calc(60px + env(safe-area-inset-bottom) + 16px);
+  }
+}
+
+@media (min-width: 769px) {
+  #mobile-nav {
+    display: none;
+  }
+  #sidebar-overlay {
+    display: none !important;
+  }
+}
+
+/* ─── Responsive grid breakdowns ─────────────────────────────────────────────── */
+
+@media (max-width: 768px) {
+  /* KPI rows stack on mobile */
+  .krow.k4,
+  .krow.k5 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .krow.k3 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  /* 2-col grids go 1-col */
+  .g2 {
+    grid-template-columns: 1fr;
+  }
+
+  /* Kanban becomes horizontal scroll */
+  .kanban {
+    display: flex;
+    flex-direction: row;
+    overflow-x: auto;
+    gap: 8px;
+    padding-bottom: 8px;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .kan-col {
+    min-width: 240px;
+    flex-shrink: 0;
+  }
+
+  /* Card grid becomes 2-col */
+  .card-grid-4 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  /* Tables get horizontal scroll */
+  .tbl-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Page padding reduction */
+  .page {
+    padding: 12px !important;
+  }
+
+  /* Header condensed */
+  #header {
+    padding: 0 12px;
+  }
+
+  .hdr-period {
+    display: none;
+  }
+
+  /* Modal full-screen on mobile */
+  .modal {
+    position: fixed;
+    inset: 0;
+    max-width: 100%;
+    max-height: 100%;
+    border-radius: 0;
+    overflow-y: auto;
+  }
+
+  .modal-bg {
+    align-items: flex-end;
+  }
+}
+
+/* ─── Touch-friendly tap targets ─────────────────────────────────────────────── */
+
+@media (max-width: 768px) {
+  .apb,
+  .btn,
+  .fchip {
+    min-height: 36px;
+    padding: 6px 12px;
+  }
+
+  .sbi {
+    padding: 10px 12px;
+  }
+
+  /* Larger checkboxes */
+  input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+  }
+}
+
+/* ─── Safe area support (iOS notch) ──────────────────────────────────────────── */
+
+#header {
+  padding-top: max(10px, env(safe-area-inset-top));
+  padding-left: max(16px, env(safe-area-inset-left));
+  padding-right: max(16px, env(safe-area-inset-right));
+}
+
+/* ─── Print styles (for invoice portal) ──────────────────────────────────────── */
+
+@media print {
+  #sidebar,
+  #header,
+  #mobile-nav,
+  .no-print {
+    display: none !important;
+  }
+
+  #page-area {
+    padding: 0;
+    overflow: visible;
+  }
+
+  .page {
+    padding: 0 !important;
+  }
+}
