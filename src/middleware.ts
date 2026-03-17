@@ -8,6 +8,7 @@ const PUBLIC_PREFIXES = [
   '/api/auth/',       // /api/auth/login, /api/auth/signup etc
   '/api/health',
   '/api/seed',        // one-time seed endpoint
+  '/api/debug',       // debug endpoint
   '/invoice/',        // public invoice portal
   '/_next/',
   '/favicon',
